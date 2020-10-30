@@ -9,23 +9,20 @@ def print_heaps(heap):   # TODO - complete by format
     print(heap)
 
 
-def is_input_valid(inp):  # list of 2 strings - heap and num - unless illegal
-    if len(inp) != 2:
-        return False
-    if inp[0] not in ["A", "B", "C"]:
-        return False
-    if not inp[1].isdigit():
-        return False
-    return True
+def get_enum_to_send(inp):  # list of 2 strings - heap and num - unless illegal
+    if len(inp) == 1 and inp[0] == "Q":
+        return QUIT
+    if len(inp) == 2 and inp[1].isdigit():
+        if inp[0] == "A":
+            return HEAP_A
+        if inp[0] == "B":
+            return HEAP_B
+        if inp[0] == "C":
+            return HEAP_C
+
+    return ILLEGAL_HEAP_INPUT
 
 
-def return_heap_enum(heap_char):
-    if heap_char == "A":
-        return HEAP_A
-    if heap_char == "B":
-        return HEAP_B
-    else: # heap_char == "C"
-        return  HEAP_C
 
 
 def nim_game_client(my_host, my_port):
@@ -39,7 +36,7 @@ def nim_game_client(my_host, my_port):
             print(e.strerror)
         while game_not_over:
 
-            #  1) receive heaps from server
+        #  1) receive heaps from server
             try:
                 output = soc.recv(struct.calcsize(">iii"))
             except socket.error as err:
@@ -49,16 +46,18 @@ def nim_game_client(my_host, my_port):
             heaps = struct.unpack(">iii", output)   #  TODO - what if output is still None?
             print_heaps(heaps)
 
-            #  2) receive game status from server (turn/win/lose)
+        #  2) receive game status from server (turn/win/lose)
             try:
                 output = soc.recv(struct.calcsize(">i"))
             except socket.error as err:
                 print(err.strerror)
                 continue
+
             game_status = struct.unpack(">i", output)
 
             if game_status == PLAYERS_TURN:
                 print("Your turn:")
+               #  3) send players action
                 raw_play = ""
                 try:
                     raw_play = input()
@@ -66,17 +65,39 @@ def nim_game_client(my_host, my_port):
                     print(err.strerror)
                     continue #TODO - what to do if reach here
                 play = raw_play.split()
-                if is_input_valid(play):
-                    heap_enum = return_heap_enum(play[0])
-                    data = struct.pack(">ii", heap_enum, play[1])
+                heap_enum = get_enum_to_send(play)
+                if heap_enum == QUIT:
+                    game_not_over = False
+                    break
+                if heap_enum == ILLEGAL_HEAP_INPUT:
+                    num_to_send = 0
                 else:
-                    data = struct.pack(">ii", ILLEGAL_HEAP_INPUT, 0)
+                    num_to_send = play[0]
+                data = struct.pack(">ii", heap_enum, num_to_send)
                 soc.send(data)  # TODO - create sendAll
 
+            else:
+                if game_status == SERVER_WINS:
+                    print("Server win!")
+                if game_status == PLAYER_WINS:
+                    print("You win!")
+                game_not_over = False
+                break
 
-
-
-            game_not_over = False
+        #   4) Server response to move
+            try:
+                output = soc.recv(struct.calcsize(">i"))
+            except socket.error as err:
+                print(err.strerror)
+                continue
+            server_response = struct.unpack(">i", output)
+            if server_response == ILLEAGL_MOVE:
+                print("Illegal move")
+            elif server_response == MOVE_ACCEPTED:
+                print("Move accepted")
+            else:
+                # TODO - what if we get something else
+                print("got some error from server")
 
 
 
