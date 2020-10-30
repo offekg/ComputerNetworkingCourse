@@ -57,7 +57,7 @@ def nim_game_client(my_host, my_port):
 
             if game_status == PLAYERS_TURN:
                 print("Your turn:")
-               #  3) send players action
+            #   3) send players action
                 raw_play = ""
                 try:
                     raw_play = input()
@@ -66,15 +66,20 @@ def nim_game_client(my_host, my_port):
                     continue #TODO - what to do if reach here
                 play = raw_play.split()
                 heap_enum = get_enum_to_send(play)
+
+                if heap_enum == ILLEGAL_HEAP_INPUT or heap_enum == QUIT:
+                    num_to_send = 0
+                else:
+                    num_to_send = int(play[0])
+                data = struct.pack(">ii", heap_enum, num_to_send)
+                try:
+                    soc.send(data)  # TODO - create sendAll
+                except socket.error as err:
+                    print(err.strerror)
+
                 if heap_enum == QUIT:
                     game_not_over = False
                     break
-                if heap_enum == ILLEGAL_HEAP_INPUT:
-                    num_to_send = 0
-                else:
-                    num_to_send = play[0]
-                data = struct.pack(">ii", heap_enum, num_to_send)
-                soc.send(data)  # TODO - create sendAll
 
             else:
                 if game_status == SERVER_WINS:
@@ -91,36 +96,13 @@ def nim_game_client(my_host, my_port):
                 print(err.strerror)
                 continue
             server_response = struct.unpack(">i", output)
-            if server_response == ILLEAGL_MOVE:
+            if server_response == PLAYER_ILLEAGL_MOVE:
                 print("Illegal move")
-            elif server_response == MOVE_ACCEPTED:
+            elif server_response == PLAYER_MOVE_ACCEPTED:
                 print("Move accepted")
             else:
                 # TODO - what if we get something else
                 print("got some error from server")
-
-
-
-
-def connection(my_host, my_port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as soc:
-        try:
-            soc.connect((my_host, my_port))
-        except socket.error as e:
-            print(e.strerror)
-
-        try:
-            soc.send("Hello".encode())
-        except socket.error as e:
-            print(e.strerror)
-
-        output = ""
-        try:
-            output = soc.recv(1024)
-        except socket.error as err:
-            print(err.strerror)
-
-        print(output)
 
 
 #host = sys.argv[1]
