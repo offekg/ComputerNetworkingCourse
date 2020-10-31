@@ -4,9 +4,11 @@ import socket
 import struct
 from shared_global import *
 
-
-def print_heaps(heap):   # TODO - complete by format
-    print(heap)
+#a function to print the heaps status in the format
+def print_heaps(n_a,n_b,n_c):
+    print("Heap A: " + n_a + '\n')
+    print("Heap B: " + n_b + '\n')
+    print("Heap C: " + n_c + '\n')
 
 
 def get_enum_to_send(inp):  # list of 2 strings - heap and num - unless illegal
@@ -23,10 +25,8 @@ def get_enum_to_send(inp):  # list of 2 strings - heap and num - unless illegal
     return ILLEGAL_HEAP_INPUT
 
 
-
-
 def nim_game_client(my_host, my_port):
-    game_not_over = True
+    game_active = True
     output = None
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as soc:
@@ -34,29 +34,22 @@ def nim_game_client(my_host, my_port):
             soc.connect((my_host, my_port))
         except socket.error as e:
             print(e.strerror)
-        while game_not_over:
+        while game_active:
 
         #  1) receive heaps from server
-            try:
-                output = soc.recv(struct.calcsize(">iii"))
-            except socket.error as err:
-                print(err.strerror)
-                continue
-
-            heaps = struct.unpack(">iii", output)   #  TODO - what if output is still None?
-            print_heaps(heaps)
-
         #  2) receive game status from server (turn/win/lose)
             try:
-                output = soc.recv(struct.calcsize(">i"))
+                output = soc.recv(struct.calcsize(">iiii"))
             except socket.error as err:
                 print(err.strerror)
                 continue
 
-            game_status = struct.unpack(">i", output)
+            n_a,n_b,n_c,game_status = struct.unpack(">iiii", output)
+            print_heaps(n_a,n_b,n_c)
 
             if game_status == PLAYERS_TURN:
                 print("Your turn:")
+
             #   3) send players action
                 raw_play = ""
                 try:
@@ -78,7 +71,7 @@ def nim_game_client(my_host, my_port):
                     print(err.strerror)
 
                 if heap_enum == QUIT:
-                    game_not_over = False
+                    game_active = False
                     break
 
             else:
@@ -86,7 +79,7 @@ def nim_game_client(my_host, my_port):
                     print("Server win!")
                 if game_status == PLAYER_WINS:
                     print("You win!")
-                game_not_over = False
+                game_active = False
                 break
 
         #   4) Server response to move
@@ -105,8 +98,18 @@ def nim_game_client(my_host, my_port):
                 print("got some error from server")
 
 
-#host = sys.argv[1]
-#port = sys.argv[2]
-#path = sys.argv[3]
+######
+# gets the stdin argument and starts the game from the client's side.
+if len(sys.argv)==3:
+    host = sys.argv[1]
+    port = int(sys.argv[2])
+    nim_game_client(host, port)
 
-nim_game_client("127.0.0.1", 6644)
+elif len(sys.argv)==1:
+    host="localhost"
+    port=6444
+    nim_game_client(host, port)
+
+else:
+    print("Illegal number of arguments!")
+
