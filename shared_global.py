@@ -1,4 +1,8 @@
+#!/usr/bin/python3
 import socket
+import struct
+
+
 # Player moves
 HEAP_A = 0
 HEAP_B = 1
@@ -15,7 +19,7 @@ PLAYERS_TURN = 10
 SERVER_WINS = 11
 PLAYER_WINS = 12
 
-
+# this function will make sure all bytes are sent
 def send_all(soc, data):
     while len(data)!=0:
         try:
@@ -26,3 +30,19 @@ def send_all(soc, data):
         if sent is not None and sent<len(data):
             data=data[sent:]
     return True
+
+# this function will make sure all bytes are received
+def recv_all (soc,st):
+    size= struct.calcsize(st)
+    final_msg= b'' #empty bytes object
+    while size>0:
+        try:
+            msg=soc.recv(size)
+        except OSError as err:
+            print(err.strerror)
+            return None
+        if msg is None:
+            return None
+        final_msg+=msg
+        size -= len(msg)
+    return final_msg

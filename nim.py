@@ -10,19 +10,27 @@ def print_heaps(n_a,n_b,n_c):
     print("Heap B: " + n_b + '\n')
     print("Heap C: " + n_c + '\n')
 
+#this function creates the data of the player's move to be sent to the server
+def create_turn_to_send(play):
+    if len(play) == 2 and play[1].isdigit():
+        num_to_send= int(play[1])
+        if play[0] == "A":
+            heap_enum= HEAP_A
+        elif play[0] == "B":
+            heap_enum= HEAP_B
+        elif play[0] == "C":
+            heap_enum= HEAP_C
+        else:  # heap letter is not A or B or C
+            heap_enum = ILLEGAL_HEAP_INPUT
+            num_to_send = 0
+    elif len(play) == 1 and play[0] == "Q": #the user input is Q for quit
+        heap_enum= QUIT
+        num_to_send=0
+    else:
+        heap_enum=ILLEGAL_HEAP_INPUT
+        num_to_send=0
 
-def get_enum_to_send(inp):  # list of 2 strings - heap and num - unless illegal
-    if len(inp) == 1 and inp[0] == "Q":
-        return QUIT
-    if len(inp) == 2 and inp[1].isdigit():
-        if inp[0] == "A":
-            return HEAP_A
-        if inp[0] == "B":
-            return HEAP_B
-        if inp[0] == "C":
-            return HEAP_C
-
-    return ILLEGAL_HEAP_INPUT
+    return heap_enum,num_to_send
 
 
 def nim_game_client(my_host, my_port):
@@ -32,43 +40,35 @@ def nim_game_client(my_host, my_port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as soc:
         try:
             soc.connect((my_host, my_port))
-        except socket.error as e:
+        except socket.error as e: # todo- why not OSError???
             print(e.strerror)
+
         while game_active:
+
 
         #  1) receive heaps from server
         #  2) receive game status from server (turn/win/lose)
-            try:
-                output = soc.recv(struct.calcsize(">iiii"))
-            except socket.error as err:
-                print(err.strerror)
-                continue
+            output= recv_all(soc,">iiii")
+            if output in None:
+                print ("error with recv")
+                continue  # todo- why continue? if there was an error with recv shouldnt we stop the game?
 
             n_a,n_b,n_c,game_status = struct.unpack(">iiii", output)
             print_heaps(n_a,n_b,n_c)
 
             if game_status == PLAYERS_TURN:
-                print("Your turn:")
 
             #   3) send players action
-                raw_play = ""
-                try:
-                    raw_play = input()
-                except socket.error as err:
-                    print(err.strerror)
-                    continue #TODO - what to do if reach here
-                play = raw_play.split()
-                heap_enum = get_enum_to_send(play)
+                print("Your turn:\n")
+                play = input()
 
-                if heap_enum == ILLEGAL_HEAP_INPUT or heap_enum == QUIT:
-                    num_to_send = 0
-                else:
-                    num_to_send = int(play[0])
+                play = play.split()
+                heap_enum, num_to_send = create_turn_to_send(play)
                 data = struct.pack(">ii", heap_enum, num_to_send)
-                try:
-                    soc.send(data)  # TODO - create sendAll
-                except socket.error as err:
-                    print(err.strerror)
+
+                if not send_all(soc,data):
+                    print("error with send")
+                    continue # Todo- break? continue? need to stop the game if the send didnt work
 
                 if heap_enum == QUIT:
                     game_active = False
@@ -83,11 +83,11 @@ def nim_game_client(my_host, my_port):
                 break
 
         #   4) Server response to move
-            try:
-                output = soc.recv(struct.calcsize(">i"))
-            except socket.error as err:
-                print(err.strerror)
-                continue
+            output= recv_all(soc, ">i")
+            if output is None:
+                print ("error with recv")
+                continue  # Todo- break? continue? need to stop the game if the send didnt work
+
             server_response = struct.unpack(">i", output)
             if server_response == PLAYER_ILLEAGL_MOVE:
                 print("Illegal move")
@@ -100,16 +100,17 @@ def nim_game_client(my_host, my_port):
 
 ######
 # gets the stdin argument and starts the game from the client's side.
-if len(sys.argv)==3:
-    host = sys.argv[1]
-    port = int(sys.argv[2])
+def start_client():
+    if len(sys.argv)==3:
+        host = sys.argv[1]
+        port = int(sys.argv[2])
+    elif len(sys.argv)==1:
+        host="localhost"
+        port=6444
+    else:
+        print("Illegal number of arguments!")
+        return
     nim_game_client(host, port)
 
-elif len(sys.argv)==1:
-    host="localhost"
-    port=6444
-    nim_game_client(host, port)
-
-else:
-    print("Illegal number of arguments!")
+start_client()
 
