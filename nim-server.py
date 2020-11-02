@@ -4,9 +4,10 @@ import sys
 import struct
 from shared_global import *
 
-heaps = [3, 4, 5]
+heaps = [1, 1, 1]
+#global heaps
 
-def is_legal_move(move):
+def is_legal_move(move):  # TODO - what about playing 0
     if heaps[move[0]] - move[1] < 0:
         return False
     return True
@@ -32,7 +33,6 @@ def server_move():
 
 
 def nim_game_server(my_port,n_a,n_b,n_c):
-    global heaps
     output = None
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as soc:
@@ -55,13 +55,16 @@ def nim_game_server(my_port,n_a,n_b,n_c):
                 print(e.strerror)      # todo - we should end the server? we cant continue to the rest of the code
 
             with conn_sock:
-                heaps=[n_a,n_b,n_c]     # for each new connection we will restart the heaps sizes
+                heaps[0] = n_a
+                heaps[1] = n_b
+                heaps[2] = n_c     # for each new connection we will restart the heaps sizes
                 status = PLAYERS_TURN    # 0=no one, 1=player, 2=server
+
                 while True:  # While client is still playing / connection is alive
 
                 #   1) Send heap values and game status
-                    data = struct.pack(">iiii", heaps[0], heaps[1], heaps[2],status)
-                    if not send_all(conn_sock,data):
+                    data = struct.pack(">iiii", heaps[0], heaps[1], heaps[2], status)
+                    if not send_all(conn_sock, data):
                         # there was an error while sending the data to the client
                         break  # Todo - break? not sure if this is the way
 
@@ -70,11 +73,12 @@ def nim_game_server(my_port,n_a,n_b,n_c):
 
 
                 #   3) accept players move and return response
-                    move= recv_all(soc, ">ii")
-                    if move is None: # there was an error during recv
-                        print ("error with recv")
-                        break # todo - break? continue? we should stop the game....
+                    move = recv_all(conn_sock, ">ii")
+                    if move is None:  # there was an error during recv
+                        print("error with recv")
+                        break  # todo - break? continue? we should stop the game....
                     move = struct.unpack(">ii", move)
+                    #print("move received: {}".format(move))
 
                     if move[0] == QUIT:  # Client closed the game
                         break
@@ -86,28 +90,29 @@ def nim_game_server(my_port,n_a,n_b,n_c):
                             server_response = PLAYER_MOVE_ACCEPTED
                             if is_win():
                                 status = PLAYER_WINS
-                                continue  # TODO - make sure no other moves to do first
                         else:  # Ilegal player move
                             server_response = PLAYER_ILLEAGL_MOVE
 
+                    #print("sending server response: {}".format(server_response))
                     data = struct.pack(">i", server_response)
-                    if not send_all(conn_sock,data):
-                        print ("error with send")
+                    if not send_all(conn_sock, data):
+                        print("error with send")
                         break   #Todo - break? not sure if this is the way
 
                 #   4) make servers move
-                    server_move()
-                    if is_win():
-                        status = SERVER_WINS
+                    if status != PLAYER_WINS:
+                        server_move()
+                        if is_win():
+                            status = SERVER_WINS
 
 def start_server():
-    if len(sys.argv)==5:
+    if len(sys.argv) == 5:
         port = sys.argv[4]
     elif len(sys.argv) == 4:
         port = 6444
     else:
         print("Illegal number of arguments!")
         return
-    nim_game_server(port, sys.argv[1], sys.argv[2], sys.argv[3])
+    nim_game_server(port, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
 
 start_server()
