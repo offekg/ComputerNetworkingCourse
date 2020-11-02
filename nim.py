@@ -2,14 +2,15 @@
 import sys
 import socket
 import struct
+import errno
 from shared_global import *
 
 
 # a function to print the heaps status in the format
 def print_heaps(n_a, n_b, n_c):
-    print("Heap A: {}\n".format(n_a))
-    print("Heap B: {}\n".format(n_b))
-    print("Heap C: {}\n".format(n_c))
+    print("Heap A: {}".format(n_a))
+    print("Heap B: {}".format(n_b))
+    print("Heap C: {}".format(n_c))
 
 
 # this function creates the data of the player's move to be sent to the server
@@ -42,8 +43,10 @@ def nim_game_client(my_host, my_port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as soc:
         try:
             soc.connect((my_host, my_port))
-        except socket.error as e:  # todo- why not OSError???
+        except OSError as e:
             print(e.strerror)
+            soc.close()
+            return
 
         while game_active:
 
@@ -51,8 +54,8 @@ def nim_game_client(my_host, my_port):
             #  2) receive game status from server (turn/win/lose)
             output = recv_all(soc, ">iiii")
             if output is None:
-                print("error with recv")
-                continue  # todo- why continue? if there was an error with recv shouldnt we stop the game?
+                # If recv_all failed, close connection and stop the client side
+                break
 
             n_a, n_b, n_c, game_status = struct.unpack(">iiii", output)
             print_heaps(n_a, n_b, n_c)
@@ -67,12 +70,12 @@ def nim_game_client(my_host, my_port):
                 data = struct.pack(">ii", heap_enum, num_to_send)
 
                 if not send_all(soc, data):
-                    print("error with send")
-                    continue  # Todo- break? continue? need to stop the game if the send didnt work
+                    # If send_all failed, close connection and stop the client side
+                    break
 
                 if heap_enum == QUIT:
                     game_active = False
-                    break
+                    continue
 
             else:
                 if game_status == SERVER_WINS:
@@ -80,13 +83,13 @@ def nim_game_client(my_host, my_port):
                 if game_status == PLAYER_WINS:
                     print("You win!")
                 game_active = False
-                break
+                continue
 
             #   4) Server response to move
             output = recv_all(soc, ">i")
             if output is None:
-                print("error with recv")
-                continue  # Todo- break? continue? need to stop the game if the send didnt work
+                # If recv_all failed, close connection and stop the client side
+                break
 
             server_response = struct.unpack(">i", output)[0]
             if server_response == PLAYER_ILLEAGL_MOVE:
@@ -94,8 +97,8 @@ def nim_game_client(my_host, my_port):
             elif server_response == PLAYER_MOVE_ACCEPTED:
                 print("Move accepted")
             else:
-                # TODO - what if we get something else
                 print("got some error from server response: ", server_response)
+                break
 
 
 ######
@@ -104,13 +107,22 @@ def start_client():
     if len(sys.argv) == 3:
         host = sys.argv[1]
         port = int(sys.argv[2])
+    elif len(sys.argv) == 2:
+        host = sys.argv[1]
+        port = 6444
     elif len(sys.argv) == 1:
         host = "localhost"
         port = 6444
     else:
-        print("Illegal number of arguments!")  # TODO - I think only hostname is also legal
+        print("Illegal number of arguments!")
         return
-    nim_game_client(host, port)
+    try:
+        nim_game_client(host, port)
+    except OSError as err:
+        if err.errno == errno.ECONNREFUSED:
+            print("connection refused by server")
+        else:
+            print(err.strerror)
 
 
 start_client()

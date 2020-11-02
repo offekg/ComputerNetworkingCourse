@@ -25,7 +25,7 @@ def send_all(soc, data):
     while len(data) != 0:
         try:
             sent = soc.send(data)
-        except OSError as err:
+        except OSError as err:  # TODO - handle right exception
             print(err.strerror)
             return False
         if sent != 0 and sent < len(data):
@@ -41,8 +41,8 @@ def recv_all(soc, st):
     final_msg = b'' #empty bytes object
     while size > 0:
         try:
-            msg = soc.recv(size)
-        except OSError as err:
+            msg = soc.recv(size)   # TODO - check if returns 0
+        except OSError as err:   # TODO - handle right exception
             print(err.strerror)
             return None
         if msg is None:
