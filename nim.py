@@ -53,8 +53,11 @@ def nim_game_client(my_host, my_port):
             #  1) receive heaps from server
             #  2) receive game status from server (turn/win/lose)
             output = recv_all(soc, ">iiii")
-            if output is None:
+            if output == 2:
                 # If recv_all failed, close connection and stop the client side
+                print("Disconnected from server")
+                break
+            if output == 0:
                 break
 
             n_a, n_b, n_c, game_status = struct.unpack(">iiii", output)
@@ -64,12 +67,14 @@ def nim_game_client(my_host, my_port):
                 #   3) send players action
                 print("Your turn:")
                 play = input()
-                #print("play {} excepted".format(play))
                 play = play.split()
                 heap_enum, num_to_send = create_turn_to_send(play)
                 data = struct.pack(">ii", heap_enum, num_to_send)
 
-                if not send_all(soc, data):
+                result = send_all(soc, data)
+                if result == 2:
+                    print("Disconnected from server")
+                elif result == 0:
                     # If send_all failed, close connection and stop the client side
                     break
 
@@ -87,8 +92,11 @@ def nim_game_client(my_host, my_port):
 
             #   4) Server response to move
             output = recv_all(soc, ">i")
-            if output is None:
+            if output == 2:
                 # If recv_all failed, close connection and stop the client side
+                print("Disconnected from server")
+                break
+            if output == 0:
                 break
 
             server_response = struct.unpack(">i", output)[0]

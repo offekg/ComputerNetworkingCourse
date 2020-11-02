@@ -8,7 +8,6 @@ from shared_global import *
 heaps = [1, 1, 1]
 
 
-
 def is_legal_move(move):
     if move[1] <= 0 or heaps[move[0]] - move[1] < 0:
         return False
@@ -33,7 +32,6 @@ def server_move():
             max_heap = heaps[i]
             max_index = i
     heaps[max_index] -= 1
-
 
 
 def nim_game_server(my_port,n_a,n_b,n_c):
@@ -72,8 +70,13 @@ def nim_game_server(my_port,n_a,n_b,n_c):
                 while True:  # While client is still playing / connection is alive
                 #   1) Send heap values and game status
                     data = struct.pack(">iiii", heaps[0], heaps[1], heaps[2], status)
-                    if not send_all(conn_sock, data):
+                    send_status = send_all(conn_sock, data)
+                    if send_status == 0:
                         # there was an error while sending the data to the client
+                        break
+                    elif send_status == 2:
+                        # there was a connection errpr from client
+                        print("Disconnected from client")
                         break
 
                     if status != PLAYERS_TURN:
@@ -81,9 +84,14 @@ def nim_game_server(my_port,n_a,n_b,n_c):
 
                 #   2) accept players move and return response
                     move = recv_all(conn_sock, ">ii")
-                    if move is None:  # there was an error during recv
+                    if move == 2:  # there was a connection error during recv
+                        # If recv_all failed, close connection
+                        print("Disconnected from client")
+                        break
+                    elif move == 0:  # there was an error during recv
                         # If recv_all failed, close connection
                         break
+
                     move = struct.unpack(">ii", move)
 
                     if move[0] == QUIT:  # Client closed the game
@@ -100,8 +108,13 @@ def nim_game_server(my_port,n_a,n_b,n_c):
                             server_response = PLAYER_ILLEAGL_MOVE
 
                     data = struct.pack(">i", server_response)
-                    if not send_all(conn_sock, data):
-                        # If send_all failed, close connection
+                    send_status = send_all(conn_sock, data)
+                    if send_status == 0:
+                        # there was an error while sending the data to the client
+                        break
+                    elif send_status == 2:
+                        # there was a connection errpr from client
+                        print("Disconnected from client")
                         break
 
                 #   3) make servers move

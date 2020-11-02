@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import socket
 import struct
+import errno
 
 
 # Player moves
@@ -21,32 +22,40 @@ PLAYER_WINS = 12
 
 
 # this function will make sure all bytes are sent
+# Returns 1 on success, 2 if connection closed, 0 for any other OSError.
 def send_all(soc, data):
     while len(data) != 0:
         try:
             sent = soc.send(data)
-        except OSError as err:  # TODO - handle right exception
-            print(err.strerror)
-            return False
+        except OSError as err:
+            if err == errno.EPIPE or err == errno.ECONNRESET:
+                return 2
+            else:
+                print("Error:", err, err.strerror)
+                return 0
         if sent != 0 and sent < len(data):
             data = data[sent:]
         if sent == len(data):
             data = b''
-    return True
+    return 1
 
 
 # this function will make sure all bytes are received
+# Returns byte message on success, 2 if connection closed, 0 for any other OSError.
 def recv_all(soc, st):
     size = struct.calcsize(st)
-    final_msg = b'' #empty bytes object
+    final_msg = b''  # empty bytes object
     while size > 0:
         try:
             msg = soc.recv(size)   # TODO - check if returns 0
         except OSError as err:   # TODO - handle right exception
-            print(err.strerror)
-            return None
-        if msg is None:
-            return None
+            if err == errno.ECONNREFUSED:
+                return 2
+            else:
+                print(err.strerror)
+                return 0
+        if msg == 0:
+            return 2
         final_msg += msg
         size -= len(msg)
     return final_msg
