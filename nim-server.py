@@ -142,7 +142,7 @@ def nim_game_server(my_port,n_a,n_b,n_c):
                             status = SERVER_WINS
 
 # this function starts the server
-# gets the arguments for the server program and wraps send them to the nim_game_server function.
+# gets the arguments for the server program and send them to the nim_game_server function.
 # wraps the nim_game_server function in case of an error.
 def start_server():
     if len(sys.argv) == 5:

@@ -3,6 +3,9 @@ import socket
 import struct
 import errno
 
+#####
+#the game binary protocol
+#####
 
 # Player moves
 HEAP_A = 0

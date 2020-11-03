@@ -6,14 +6,15 @@ import errno
 from shared_global import *
 
 
-# a function to print the heaps status in the format
+# this function print's the heaps status in the format
 def print_heaps(n_a, n_b, n_c):
     print("Heap A: {}".format(n_a))
     print("Heap B: {}".format(n_b))
     print("Heap C: {}".format(n_c))
 
 
-# this function creates the data of the player's move to be sent to the server
+# this function checks the user input ia in right format,
+# and creates the data to be sent to the server accordingly
 def create_turn_to_send(play):
     if len(play) == 2 and play[1].isdigit():
         num_to_send = int(play[1])
@@ -35,11 +36,16 @@ def create_turn_to_send(play):
 
     return heap_enum, num_to_send
 
-
+# this function is responsible for the client socket connection and the client work.
+# it starts a socket connection to the server.
+# it print's the heaps status and game status it gets from the server.
+# it gets the player's input, checks its in the right format and sends it to the server.
+# in case of an error, the connection is closed and the function returns.
 def nim_game_client(my_host, my_port):
     game_active = True
     output = None
 
+    # creating a socket and connecting to the server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as soc:
         try:
             soc.connect((my_host, my_port))
@@ -49,22 +55,22 @@ def nim_game_client(my_host, my_port):
             return
 
         while game_active:
-
             #  1) receive heaps from server
             #  2) receive game status from server (turn/win/lose)
             output = recv_all(soc, ">iiii")
             if output == 2:
-                # If recv_all failed, close connection and stop the client side
+                # there was a connection error from server, we print a specific message and end the game.
                 print("Disconnected from server")
                 break
             if output == 0:
+                # there was an error while receiving the data from the server. the game ends with this client.
                 break
 
             n_a, n_b, n_c, game_status = struct.unpack(">iiii", output)
             print_heaps(n_a, n_b, n_c)
 
             if game_status == PLAYERS_TURN:
-                #   3) send players action
+                # 3) it is the player's turn, the client gets the player's input and send it to server
                 print("Your turn:")
                 play = input()
                 play = play.split()
@@ -73,9 +79,10 @@ def nim_game_client(my_host, my_port):
 
                 result = send_all(soc, data)
                 if result == 2:
+                    # there was a connection error from server, we print a specific message and end the game.
                     print("Disconnected from server")
                 elif result == 0:
-                    # If send_all failed, close connection and stop the client side
+                    # there was an error while sending the data to the server. the game ends.
                     break
 
                 if heap_enum == QUIT:
@@ -93,10 +100,11 @@ def nim_game_client(my_host, my_port):
             #   4) Server response to move
             output = recv_all(soc, ">i")
             if output == 2:
-                # If recv_all failed, close connection and stop the client side
+                # there was a connection error from server, we print a specific message and end the game.
                 print("Disconnected from server")
                 break
             if output == 0:
+                # there was an error while receiving the data from the server. the game ends with this client.
                 break
 
             server_response = struct.unpack(">i", output)[0]
@@ -109,8 +117,9 @@ def nim_game_client(my_host, my_port):
                 break
 
 
-######
-# gets the stdin argument and starts the game from the client's side.
+# this function starts client
+# gets the arguments for the client's program and send them to the nim_game_client function.
+# wraps the nim_game_server function in case of an error.
 def start_client():
     if len(sys.argv) == 3:
         host = sys.argv[1]
