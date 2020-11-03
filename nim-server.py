@@ -143,10 +143,10 @@ def nim_game_server(my_port,n_a,n_b,n_c):
 
 # this function starts the server
 # gets the arguments for the server program and wraps send them to the nim_game_server function.
-# wrapps the nim_game_server function in case of an error.
+# wraps the nim_game_server function in case of an error.
 def start_server():
     if len(sys.argv) == 5:
-        port = sys.argv[4]
+        port = int(sys.argv[4])
     elif len(sys.argv) == 4:
         port = 6444
     else:
