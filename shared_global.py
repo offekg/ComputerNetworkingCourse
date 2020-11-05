@@ -56,7 +56,7 @@ def recv_all(soc, st):
         print("Doing recv_all. size-", size)
         try:
             msg = soc.recv(size)
-            print("Received msg-",msg)
+            print("Received msg-", msg)
         except OSError as err:
             if err == errno.ECONNREFUSED:
                 return 2
@@ -65,7 +65,7 @@ def recv_all(soc, st):
                 return 0
         except Exception as err:
             print("General Error in recv_all:", err)
-        if msg == 0:
+        if not msg:
             return 2
         final_msg += msg
         size -= len(msg)
