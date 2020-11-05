@@ -30,16 +30,12 @@ def send_all(soc, data):
     while len(data) != 0:
         try:
             sent = soc.send(data)
-            print("in send, sent-", sent)
         except OSError as err:
             if err == errno.EPIPE or err == errno.ECONNRESET:
                 return 2
             else:
-                print("Error:", err, err.strerror)
+                print("Error:", err.strerror)
                 return 0
-        except Exception as err:
-            print("General Error in send_all:", err)
-
         if sent != 0 and sent < len(data):
             data = data[sent:]
         if sent == len(data):
@@ -53,18 +49,14 @@ def recv_all(soc, st):
     size = struct.calcsize(st)
     final_msg = b''  # empty bytes object
     while size > 0:
-        print("Doing recv_all. size-", size)
         try:
             msg = soc.recv(size)
-            print("Received msg-", msg)
         except OSError as err:
             if err == errno.ECONNREFUSED:
                 return 2
             else:
                 print(err.strerror)
                 return 0
-        except Exception as err:
-            print("General Error in recv_all:", err)
         if not msg:
             return 2
         final_msg += msg

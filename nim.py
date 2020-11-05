@@ -78,7 +78,6 @@ def nim_game_client(my_host, my_port):
                 data = struct.pack(">ii", heap_enum, num_to_send)
 
                 result = send_all(soc, data)
-                print("Did send, with return:", result)
                 if result == 2:
                     # there was a connection error from server, we print a specific message and end the game.
                     print("Disconnected from server")
