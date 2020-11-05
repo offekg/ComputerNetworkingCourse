@@ -37,6 +37,9 @@ def send_all(soc, data):
             else:
                 print("Error:", err, err.strerror)
                 return 0
+        except Exception as err:
+            print("General Error in send_all:", err)
+
         if sent != 0 and sent < len(data):
             data = data[sent:]
         if sent == len(data):
@@ -60,6 +63,8 @@ def recv_all(soc, st):
             else:
                 print(err.strerror)
                 return 0
+        except Exception as err:
+            print("General Error in recv_all:", err)
         if msg == 0:
             return 2
         final_msg += msg
