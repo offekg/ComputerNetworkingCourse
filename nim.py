@@ -13,7 +13,7 @@ def print_heaps(n_a, n_b, n_c):
     print("Heap C: {}".format(n_c))
 
 
-# this function checks the user input ia in right format,
+# this function checks the user input "play" is in the correct format,
 # and creates the data to be sent to the server accordingly
 def create_turn_to_send(play):
     if len(play) == 2 and play[1].isdigit():

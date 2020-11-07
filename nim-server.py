@@ -33,12 +33,13 @@ def server_move():
             max_index = i
     heaps[max_index] -= 1
 
+
 # this function is responsible for the server socket connection and the server game logic.
 # it starts a socket, with socket, bind and listen commands.
 # when a client tries to connect, it accepts a single connection and the game begins.
 # when the connection is closed, returns to listening until a new client connect.
 # in case of an error, the server closes the connection and the function returns.
-def nim_game_server(my_port,n_a,n_b,n_c):
+def nim_game_server(my_port, n_a, n_b, n_c):
 
     # creating a socket with socket, bind and listen commands.
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as soc:
@@ -142,7 +143,7 @@ def nim_game_server(my_port,n_a,n_b,n_c):
                             status = SERVER_WINS
 
 # this function starts the server
-# gets the arguments for the server program and send them to the nim_game_server function.
+# gets the arguments for the server program and sends them to the nim_game_server function.
 # wraps the nim_game_server function in case of an error.
 def start_server():
     if len(sys.argv) == 5:
