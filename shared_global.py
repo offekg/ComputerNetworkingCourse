@@ -24,6 +24,7 @@ SERVER_WINS = 11
 PLAYER_WINS = 12
 
 
+
 # this function will make sure all bytes are sent
 # Returns 1 on success, 2 if connection closed, 0 for any other OSError.
 def send_all(soc, data):
