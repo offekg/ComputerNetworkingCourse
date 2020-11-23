@@ -42,7 +42,7 @@ def create_turn_to_send(play):
 # it gets the player's input, checks its in the right format and sends it to the server.
 # in case of an error, the connection is closed and the function returns.
 def nim_game_client(my_host, my_port):
-    game_active = True
+    game_active = False
     output = None
 
     # creating a socket and connecting to the server
@@ -53,6 +53,22 @@ def nim_game_client(my_host, my_port):
             print(e.strerror)
             soc.close()
             return
+
+        output = recv_all(soc, ">i")
+        connection_Status = struct.unpack(">i", output)
+        if connection_Status == REJECTED:
+            print("You are rejected by the server.")
+            soc.close()
+            return
+
+        while connection_Status == WAITING:
+            print("Waiting to play against the server.")
+            output = recv_all(soc, ">i") #TODO - deal with recvall return value in case of errors
+            connection_Status = struct.unpack(">i", output)
+
+        if connection_Status == PLAYING:
+            print("Now you are playing against the server!")
+            game_active = True
 
         while game_active:
             #  1) receive heaps from server
