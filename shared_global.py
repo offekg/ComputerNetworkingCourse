@@ -96,4 +96,3 @@ def client_recv_all(soc, msg_format, flag):
                 size -= len(msg)
                 if size <= 0:
                     return final_msg
-

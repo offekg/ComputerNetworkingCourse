@@ -63,7 +63,7 @@ def nim_game_client(my_host, my_port):
 
         while connection_Status == WAITING:
             print("Waiting to play against the server.")
-            output = recv_all(soc, ">i") #TODO - deal with recvall return value in case of errors
+            output = recv_all(soc, ">i")  # TODO - deal with recvall return value in case of errors
             connection_Status = struct.unpack(">i", output)
 
         if connection_Status == PLAYING:
