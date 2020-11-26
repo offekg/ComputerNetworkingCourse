@@ -51,12 +51,14 @@ def remove_playing_client(client):
     if len(wait_list)!=0:
         new_playing_client=wait_list.pop()
         play_list.append(new_playing_client)
-        players_status[new_playing_client]=[n_a,n_b,n_c,1]
+        players_status[new_playing_client]= [heap_nums[0], heap_nums[1], heap_nums[2],PLAYERS_TURN]  # [heapA, heapB, heapC, game_phase]
+        reading_dict[new_playing_client] = b''
+        writing_dict[new_playing_client] = 0
+        connection_msg = PLAYING
 def exec_client_move(client):
     move = struct.unpack(">ii", reading_dict[client])
     if move[0] == QUIT:
         # Client ended the game.
-        # need to remove from playing list
         remove_playing_client(client)
 
     elif move[0] == ILLEGAL_HEAP_INPUT:
