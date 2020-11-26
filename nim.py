@@ -36,6 +36,51 @@ def create_turn_to_send(play):
 
     return heap_enum, num_to_send
 
+
+# Function plays out first game stage. returns the game status, or 0 if error.
+def game_phase_1(soc):
+    #  1) receive heaps from server
+    #  2) receive game status from server (turn/win/lose)
+    output = recv_all(soc, ">iiii")
+    if output == 2:
+        # there was a connection error from server, we print a specific message and end the game.
+        print("Disconnected from server")
+        return 0
+    if output == 0:
+        # there was an error while receiving the data from the server. the game ends with this client.
+        return 0
+
+    n_a, n_b, n_c, game_status = struct.unpack(">iiii", output)
+    print_heaps(n_a, n_b, n_c)
+
+    if game_status == PLAYERS_TURN:
+        print("Your turn:")
+    else:
+        if game_status == SERVER_WINS:
+            print("Server win!")
+        if game_status == PLAYER_WINS:
+            print("You win!")
+    return game_status
+
+
+def game_phase_2(soc, user_input):
+    play = user_input.split()
+    heap_enum, num_to_send = create_turn_to_send(play)
+    data = struct.pack(">ii", heap_enum, num_to_send)
+
+    result = send_all(soc, data)
+    if result == 2:
+        # there was a connection error from server, we print a specific message and end the game.
+        print("Disconnected from server")
+    elif result == 0:
+        # there was an error while sending the data to the server. the game ends.
+        #break
+
+    if heap_enum == QUIT:
+        game_active = False
+        #continue
+
+
 # this function is responsible for the client socket connection and the client work.
 # it starts a socket connection to the server.
 # it print's the heaps status and game status it gets from the server.
@@ -44,6 +89,7 @@ def create_turn_to_send(play):
 def nim_game_client(my_host, my_port):
     game_active = False
     output = None
+    game_phase = 1  # 1, 2, 3
 
     # creating a socket and connecting to the server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as soc:
@@ -54,39 +100,51 @@ def nim_game_client(my_host, my_port):
             soc.close()
             return
 
-        output = recv_all(soc, ">i")
-        connection_Status = struct.unpack(">i", output)
-        if connection_Status == REJECTED:
-            print("You are rejected by the server.")
-            soc.close()
-            return
+        while(True):
+            readable, _, _ = select(rlist=[soc, sys.stdin], wlist=[], xlist=[], timeout=10)
+            if sys.stdin in readable:
+                output = sys.stdin.readline()
+                if output == "Q":
+                    break
+            if soc in readable:
+                output = recv_all(soc, ">i")
+                connection_Status = struct.unpack(">i", output)
+                if connection_Status == REJECTED:
+                    print("You are rejected by the server.")
+                    break
 
-        while connection_Status == WAITING:
-            print("Waiting to play against the server.")
-            output = recv_all(soc, ">i")  # TODO - deal with recvall return value in case of errors
-            connection_Status = struct.unpack(">i", output)
+                if connection_Status == PLAYING:
+                    print("Now you are playing against the server!")
+                    game_active = True
+                    break
 
-        if connection_Status == PLAYING:
-            print("Now you are playing against the server!")
-            game_active = True
+                if connection_Status == WAITING:
+                    print("Waiting to play against the server.")
 
         while game_active:
-            #  1) receive heaps from server
-            #  2) receive game status from server (turn/win/lose)
-            output = recv_all(soc, ">iiii")
-            if output == 2:
-                # there was a connection error from server, we print a specific message and end the game.
-                print("Disconnected from server")
-                break
-            if output == 0:
-                # there was an error while receiving the data from the server. the game ends with this client.
-                break
+            readable, writable, _ = select(rlist=[soc, sys.stdin], wlist=[soc], xlist=[], timeout=10)
+            # TODO - check disconnect from soc
 
-            n_a, n_b, n_c, game_status = struct.unpack(">iiii", output)
-            print_heaps(n_a, n_b, n_c)
+            if sys.stdin in readable:
+                if soc in writable and game_phase == 2:
+                    user_input = sys.stdin.readline()
+                    game_phase_2(soc, user_input)
+                if game_phase != 2:
+                    user_input = sys.stdin.readline()
+                    if output == "Q":  # TODO - send to server
+                        break
+
+            if soc in readable and game_phase == 1:
+                game_status = game_phase_1(soc)
+                if game_status != PLAYERS_TURN:
+                   break
+                game_phase = 2
+                continue
+
+
 
             if game_status == PLAYERS_TURN:
-                # 3) it is the player's turn, the client gets the player's input and send it to server
+                # 2) it is the player's turn, the client gets the player's input and send it to server
                 print("Your turn:")
                 play = input()
                 play = play.split()

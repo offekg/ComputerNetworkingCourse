@@ -70,7 +70,7 @@ def recv_all(soc, st):
         size -= len(msg)
     return final_msg
 
-"""flag = 0 is soc, flag == 1 is input"""
+"""flag = 0 is soc, flag == 1 is input
 def client_recv_all(soc, msg_format, flag):
     size = struct.calcsize(msg_format)
     final_msg = b''  # empty bytes object
@@ -96,3 +96,4 @@ def client_recv_all(soc, msg_format, flag):
                 size -= len(msg)
                 if size <= 0:
                     return final_msg
+"""
