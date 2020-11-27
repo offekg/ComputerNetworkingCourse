@@ -249,7 +249,7 @@ def nim_game_server(my_port):
                     if player[-1] == SEND1:  # SEND1 means we are sending the client his game status.
                         send_stat = send(writable_sock)
                         if send_stat == 1:
-                            writing_dict[writable_sock] = RECV  #TODO - fix this
+                            players_status[writable_sock][-1] = RECV
                         elif send_stat == 0:  # error
                             print("Error")  # TODO - decide what to do with error in specific socket
                             remove_playing_client(writable_sock)
