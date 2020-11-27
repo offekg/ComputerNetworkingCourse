@@ -234,23 +234,32 @@ def nim_game_server(my_port):
                         if recv_stat == 0:
                             print("Error with receiving from client")
                             remove_playing_client(readable_sock)
+                        if recv_stat == 1:
+                            print("Client message received successfully: ", reading_dict[readable_sock])
+                            # the client finished sending his msg
+                            if exec_client_move(readable_sock) == 0:
+                                # client ended the game and to be removed
+                                remove_playing_client(readable_sock)
+                                continue
+                            reading_dict[readable_sock] = b''
+                            players_status[readable_sock][-1] = SEND2
 
                     else:
                         # TODO - handle socket that sent not when supposed to - probably closed
                         print("Client sent unexpected message. Removing from list.")
                         remove_playing_client(readable_sock)
 
-                # checks what client messages have been fully received, and executes the move
-                for client, msg in reading_dict.items():
-                    if len(msg) == CLIENT_MESSAGE_SIZE:
-                        print("Client message received succesfully: ", msg)
-                        # the client finished sending his msg
-                        if exec_client_move(client) == 0:
-                            # client ended the game and to be removed
-                            remove_playing_client(client)
-                            continue
-                        reading_dict[client] = b''
-                        players_status[client][-1] = SEND2
+                # # checks what client messages have been fully received, and executes the move
+                # for client, msg in reading_dict.items():
+                #     if len(msg) == CLIENT_MESSAGE_SIZE:
+                #         print("Client message received succesfully: ", msg)
+                #         # the client finished sending his msg
+                #         if exec_client_move(client) == 0:
+                #             # client ended the game and to be removed
+                #             remove_playing_client(client)
+                #             continue
+                #         reading_dict[client] = b''
+                #         players_status[client][-1] = SEND2
 
                 for writable_sock in writeable:
                     if writable_sock in new_clients:
