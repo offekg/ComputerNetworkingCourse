@@ -183,6 +183,7 @@ def recv(client):
     return 1
 
 
+#  ToDo - recognise if client in wait_list has disconnencted, and remove from wait list
 # this function is responsible for the server socket connection and the server game logic.
 # it starts a socket, with socket, bind and listen commands.
 # when a client tries to connect, it accepts a single connection and the game begins.
