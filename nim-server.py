@@ -44,7 +44,7 @@ def exec_server_move(client):
         if players_status[client][i] > max_heap:
             max_heap = players_status[client][i]
             max_index = i
-        players_status[client][max_index] -= 1
+    players_status[client][max_index] -= 1
 
     if is_win(client):
         players_status[client][3] = SERVER_WINS
