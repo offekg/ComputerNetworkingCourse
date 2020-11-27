@@ -134,7 +134,7 @@ def nim_game_client(my_host, my_port):
                     res = recv(soc, SERVER_MESSAGE0_SIZE)
                     if res == 1:
                         # all wall received
-                        print("recv_msg is:",recv_msg)
+                        print("recv_msg is:", recv_msg)
                         connection_status = struct.unpack(">i", recv_msg)
 
                         if connection_status == REJECTED:
