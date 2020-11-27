@@ -176,6 +176,7 @@ def recv(client):
         reading_dict[client] += msg
     return 1
 
+#  TODO - handle dict lookups when client already disconnected and not in them
 
 # this function is responsible for the server socket connection and the server game logic.
 # it starts a socket, with socket, bind and listen commands.
