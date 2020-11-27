@@ -233,7 +233,7 @@ def nim_game_server(my_port):
                         send_stat = send(writable_sock)  # Return 1 if completed, 2 if not completed, 0 on error
                         if send_stat == 1:
                             #all was sent
-                            new_clients.pop(writable_sock)
+                            new_clients.remove(writable_sock)
                             if writable_sock in play_list:
                                 writing_dict[writable_sock] = struct.pack(">iiii", heap_nums[0], heap_nums[1], heap_nums[2], PLAYERS_TURN)
                             else:
