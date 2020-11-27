@@ -55,7 +55,7 @@ def remove_playing_client(client):
     players_status.pop(client, None)
     reading_dict.pop(client, None)
     writing_dict.pop(client, None)
-    wait_list.pop(client, None)
+    wait_list.remove(client)
 
     if len(wait_list) != 0:
         new_playing_client = wait_list.pop()
@@ -64,6 +64,7 @@ def remove_playing_client(client):
         players_status[new_playing_client] = \
             [heap_nums[0], heap_nums[1], heap_nums[2], PLAYERS_TURN,
              SEND1]  # [heapA, heapB, heapC, Game status, game stage]
+        #  TODO - need to send this client "now playing" message (add to new_client list?)
         reading_dict[new_playing_client] = b''
         connection_msg = PLAYING
         writing_dict[new_playing_client] = struct.pack(">i", connection_msg)
@@ -246,19 +247,22 @@ def nim_game_server(my_port):
                 for writable_sock in writeable:
                     if writable_sock in new_clients:
                         # we need to send him if he is now on playing list, wait list or rejected
+                        print("Server trying to send init message to new client")
                         send_stat = send(writable_sock)  # Return 1 if completed, 2 if not completed, 0 on error
                         if send_stat == 1:
                             # all was sent
+                            print("Server succeeded sending init message to new client")
                             new_clients.remove(writable_sock)
                             if writable_sock in play_list:
                                 writing_dict[writable_sock] = struct.pack(">iiii", heap_nums[0], heap_nums[1],
                                                                           heap_nums[2], PLAYERS_TURN)
-                            else:
+                            else:  # socket not in playing list
                                 writing_dict.pop(writable_sock)
                         elif send_stat == 0:
                             print("Error in sending client init message")
                             new_clients.remove(writable_sock)
                             remove_playing_client(writable_sock)
+                        continue
 
                     player = players_status[writable_sock]
 
