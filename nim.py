@@ -124,6 +124,7 @@ def nim_game_client(my_host, my_port):
             readable, writable, _ = select([soc, sys.stdin], [soc], [], 10)
 
             if client_phase == RECV0:
+                print("Client phase:  RECV0")
                 # client is waiting to see if his connection was accepted or rejected
                 if sys.stdin in readable:
                     # user input while not need to be
@@ -132,7 +133,8 @@ def nim_game_client(my_host, my_port):
                 if soc in readable:
                     res = recv(soc, SERVER_MESSAGE0_SIZE)
                     if res == 1:
-                        # all wall recieved
+                        # all wall received
+                        print("recv_msg is:",recv_msg)
                         connection_status = struct.unpack(">i", recv_msg)
 
                         if connection_status == REJECTED:
@@ -158,6 +160,7 @@ def nim_game_client(my_host, my_port):
                         print("Error")
 
             if client_phase == RECV1:
+                print("Client phase:  RECV1")
                 # client will recv the game and heaps status and print it to the user
                 if sys.stdin in readable:
                     # user input while not need to be
@@ -187,6 +190,7 @@ def nim_game_client(my_host, my_port):
                     print("Error")
 
             if client_phase == SEND:
+                print("Client phase:  SEND")
                 if soc in readable:
                     # server sent message when not suppose to
                     # Todo - think about it
@@ -212,6 +216,7 @@ def nim_game_client(my_host, my_port):
                         print("Error")
 
             if client_phase == RECV2:
+                print("Client phase:  RECV2")
                 if sys.stdin in readable:
                     # user input while not need to be
                     break
