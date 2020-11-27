@@ -78,6 +78,7 @@ def remove_playing_client(client):
 # returns 0 if player asked to quit, 1 otherwise
 def exec_client_move(client):
     move = struct.unpack(">ii", reading_dict[client])
+    print("Client move accepted is:", move)
     server_response = None
     if move[0] == QUIT:
         # Client ended the game.
@@ -245,7 +246,7 @@ def nim_game_server(my_port):
                         print("Client message received succesfully: ", msg)
                         # the client finished sending his msg
                         if exec_client_move(client) == 0:
-                            # client ended the game and was removed
+                            # client ended the game and to be removed
                             remove_playing_client(client)
                             continue
                         reading_dict[client] = b''

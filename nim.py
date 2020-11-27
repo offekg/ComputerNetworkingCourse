@@ -172,6 +172,7 @@ def nim_game_client(my_host, my_port):
                     # all was recieved
                     n_a, n_b, n_c, game_status = struct.unpack(">iiii", recv_msg)
                     print_heaps(n_a, n_b, n_c)
+                    recv_msg = b''
                     if game_status == PLAYERS_TURN:
                         print("Your turn:")
                         client_phase = SEND
