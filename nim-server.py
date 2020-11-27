@@ -94,29 +94,31 @@ def exec_client_move(client):
 
 
 def handle_new_client(listen_soc):
-    try:
-        conn_sock, address = listen_soc.accept()
-    except socket.error as e:
+	try:
+		conn_sock, address = listen_soc.accept()
+	except socket.error as e:
         # Failed specific "accept". continue to try again next iteration
-        print(e.strerror)
-        return 0
-
-    connection_msg = None
-    if len(play_list) < num_players:
-        play_list.append(conn_sock)
-        players_status[conn_sock] = \
-            [heap_nums[0], heap_nums[1], heap_nums[2], PLAYERS_TURN, SEND1]  # [heapA, heapB, heapC, Game status, game stage]
-        reading_dict[conn_sock] = b''
-        connection_msg = PLAYING
-    elif len(wait_list) < wait_list_size:
-        wait_list.append(conn_sock)
-        connection_msg = WAITING
-    else:
-        connection_msg = REJECTED
-
+		print(e.strerror)
+		return 0
+	
+	connection_msg = None
+	if len(play_list) < num_players:
+		play_list.append(conn_sock)
+		players_status[conn_sock] = \
+			[heap_nums[0], heap_nums[1], heap_nums[2], PLAYERS_TURN, SEND1]  # [heapA, heapB, heapC, Game status, game stage]
+		reading_dict[conn_sock] = b''
+		connection_msg = PLAYING
+	elif len(wait_list) < wait_list_size:
+		wait_list.append(conn_sock)
+		connection_msg = WAITING
+	else:
+		connection_msg = REJECTED
+		
     # TODO - send connection_msg to client
-    new_clients.append(conn_sock)
-    writing_dict[conn_sock]=struct.pack(">i", connection_msg)
+	new_clients.append(conn_sock)
+	writing_dict[conn_sock] = struct.pack(">i", connection_msg)
+	print("***new client in dict:")
+	print(type(writing_dict[conn_sock] ), writing_dict[conn_sock])
 
 
 # sends message that is saved in writing_dict[client], to client
@@ -124,23 +126,23 @@ def handle_new_client(listen_soc):
 # returns 2 if sent part of message, returns 0 for errors
 def send(client):
     # connected client is readable, we will read it
-
-    if len(writing_dict[client]) > 0:
-        try:
-            sent = client.send(writing_dict[client])
-        except OSError as err:
-            if err == errno.EPIPE or err == errno.ECONNRESET:
-                print("Disconnected from client")
-                return 0
-            else:
-                print("Error:", err.strerror)
-                return 0
-        if sent != 0 and sent < len(writing_dict[client]):
-            writing_dict[client] = writing_dict[client][sent:]
-            return 2
-        if sent == len(writing_dict[client]):
-            writing_dict[client] = b''
-            return 1
+	print("trying to send: ", writing_dict[client])
+	if len(writing_dict[client]) > 0:
+		try:
+			sent = client.send(writing_dict[client])
+		except OSError as err:
+			if err == errno.EPIPE or err == errno.ECONNRESET:
+				print("Disconnected from client")
+				return 0
+			else:
+				print("Error:", err.strerror)
+				return 0
+		if sent != 0 and sent < len(writing_dict[client]):
+			writing_dict[client] = writing_dict[client][sent:]
+			return 2
+		if sent == len(writing_dict[client]):
+			writing_dict[client] = b''
+			return 1
 
 
 # Receives message from client into reading_dict[client]
@@ -247,7 +249,7 @@ def nim_game_server(my_port):
                     if player[-1] == SEND1:  # SEND1 means we are sending the client his game status.
                         send_stat = send(writable_sock)
                         if send_stat == 1:
-                            writing_dict[writable_sock] = RECV
+                            writing_dict[writable_sock] = RECV  #TODO - fix this
                         elif send_stat == 0:  # error
                             print("Error")  # TODO - decide what to do with error in specific socket
                             remove_playing_client(writable_sock)
