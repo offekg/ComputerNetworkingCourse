@@ -7,14 +7,15 @@ from shared_global import *
 
 
 # Clinet game stages:
-RECV0 = 50
-RECV1 = 51
-SEND = 52
-RECV2 = 53
+RECV0 = 60
+RECV1 = 61
+SEND = 62
+RECV2 = 63
 
 # client msg
-recv_msg=b''
-sent_msg_size=0
+recv_msg = b''
+sent_msg_size = 0
+
 
 # this function print's the heaps status in the format
 def print_heaps(n_a, n_b, n_c):
@@ -48,25 +49,25 @@ def create_turn_to_send(play):
 
 
 # sends message that is saved in writing_dict[client], to client
-# returns 1 if succeeded in sending complete messgae
+# returns 1 if succeeded in sending complete message
 # returns 2 if sent part of message, returns 0 for errors
-def send(soc,msg):
+def send(soc, msg):
     # connected client is readable, we will read it
     global sent_msg_size
-    if len(msg)-sent_msg_size > 0:
+    if len(msg) - sent_msg_size > 0:
         try:
             sent = soc.send(msg[len(sent_msg_size):])
         except OSError as err:
             if err == errno.EPIPE or err == errno.ECONNRESET:
-                print("Disconnected from client")
+                print("Disconnected from server")
                 return 0
             else:
                 print("Error:", err.strerror)
                 return 0
-        if sent != 0 and sent < len(msg)-sent_msg_size:
-            sent_msg_size+=sent
+        if sent != 0 and sent < len(msg) - sent_msg_size:
+            sent_msg_size += sent
             return 2
-        if sent == len(msg)-sent_msg_size:
+        if sent == len(msg) - sent_msg_size:
             #sent all
             sent_msg_size = 0
             return 1
@@ -78,7 +79,7 @@ def recv(soc, msg_size):
     # connected client is readable, we will read it
     global recv_msg
     try:
-        msg = soc.recv( msg_size- len(recv_msg))
+        msg = soc.recv(msg_size - len(recv_msg))
     except OSError as err:
         if err == errno.ECONNREFUSED:
             print("Disconnected from server")
@@ -91,7 +92,7 @@ def recv(soc, msg_size):
         return 0
 
     recv_msg += msg
-    if  len(recv_msg) < msg_size:
+    if len(recv_msg) < msg_size:
         return 2  #recv but not all
     else:
         #len(recv_msg) == msg_size:
@@ -119,19 +120,20 @@ def nim_game_client(my_host, my_port):
             return
 
         while(True):
-            #establish connection with server
-            readable, writable, _ = select(rlist=[soc, sys.stdin], wlist=[soc], xlist=[], timeout=10)
+            # establish connection with server
+            readable, writable, _ = select([soc, sys.stdin], [soc], [], 10)
 
             if client_phase == RECV0:
                 # client is waiting to see if his connection was accepted or rejected
                 if sys.stdin in readable:
                     # user input while not need to be
+                    # TODO - think about what to do
                     break
                 if soc in readable:
-                    res=recv(soc, SERVER_MESSAGE0_SIZE)
-                    if res==1:
+                    res = recv(soc, SERVER_MESSAGE0_SIZE)
+                    if res == 1:
                         # all wall recieved
-                        connection_status= struct.unpack(">i",recv_msg)
+                        connection_status = struct.unpack(">i", recv_msg)
 
                         if connection_status == REJECTED:
                             print("You are rejected by the server.")
@@ -144,11 +146,11 @@ def nim_game_client(my_host, my_port):
                         if connection_status == WAITING:
                             print("Waiting to play against the server.")
 
-                        recv_msg=b''
+                        recv_msg = b''
                         continue
 
-                    if res==2:
-                        # not all was recieved, neeed to continue reading
+                    if res == 2:
+                        # not all was recieved, need to continue reading
                         continue
 
                     else: #res==0
@@ -160,11 +162,11 @@ def nim_game_client(my_host, my_port):
                 if sys.stdin in readable:
                     # user input while not need to be
                     break
-                res= recv(soc, SERVER_MESSAGE1_SIZE)
-                if res ==1 :
+                res = recv(soc, SERVER_MESSAGE1_SIZE)
+                if res == 1:
                     # all was recieved
-                    n_a,n_b,n_c, game_status= struct.unpack(">iiii",recv_msg)
-                    print_heaps(n_a,n_b,n_c)
+                    n_a, n_b, n_c, game_status = struct.unpack(">iiii", recv_msg)
+                    print_heaps(n_a, n_b, n_c)
                     if game_status == PLAYERS_TURN:
                         print("Your turn:")
                         client_phase = SEND
@@ -177,43 +179,67 @@ def nim_game_client(my_host, my_port):
                         break
 
                 if res == 2:
-                    # not all was recieved, need to continue reading
+                    # not all was received, need to continue reading
                     continue
+
+                else:  # res==0
+                    # there was an error
+                    print("Error")
 
             if client_phase == SEND:
                 if soc in readable:
                     # server sent message when not suppose to
+                    # Todo - think about it
                     break
 
                 if sys.stdin in readable and soc in writable:
-                    user_input=sys.stdin.readline()
+                    user_input = sys.stdin.readline()
                     play = user_input.split()
                     heap_enum, num_to_send = create_turn_to_send(play)
-                    msg= struct.pack(">ii", heap_enum, num_to_send)
-                    res= send(soc, msg)
-                    if res ==1:
+                    msg = struct.pack(">ii", heap_enum, num_to_send)
+                    res = send(soc, msg)
+                    if res == 1:
                         #all was sent
-                        client_phase=RECV2
-                        if heap_enum==QUIT:
+                        client_phase = RECV2
+                        if heap_enum == QUIT:
                             break
                         continue
-                    if res ==2:
+                    if res == 2:
                         # not all was sent, need to continue sending
                         continue
-                    if res ==0:
+                    if res == 0:
                         #todo- handle error
                         print("Error")
-
 
             if client_phase == RECV2:
                 if sys.stdin in readable:
                     # user input while not need to be
                     break
 
+                res = recv(soc, SERVER_MESSAGE1_SIZE)
+                if res == 1:
+                    # all was received
+                    server_response = struct.unpack(">i", recv_msg)[0]
+
+                    if server_response == PLAYER_ILLEAGL_MOVE:
+                        print("Illegal move")
+                    elif server_response == PLAYER_MOVE_ACCEPTED:
+                        print("Move accepted")
+                    else:
+                        print("got some error from server response: ", server_response)
+                        break
+                    client_phase = RECV1
+                    recv_msg = b''
+                    continue
+
+                elif res == 2:
+                    # not all was received, need to continue reading
+                    continue
+
+                else:  # res==0
+                    # there was an error
+                    print("Error")
 '''
-
-
-
             if sys.stdin in readable:
                 output = sys.stdin.readline()
                 if output == "Q":
@@ -302,6 +328,7 @@ def nim_game_client(my_host, my_port):
                 print("got some error from server response: ", server_response)
                 break
 '''
+
 
 # this function starts client
 # gets the arguments for the client's program and send them to the nim_game_client function.
