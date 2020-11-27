@@ -158,6 +158,7 @@ def nim_game_client(my_host, my_port):
                     else: #res==0
                         #there was an error
                         print("Error")
+                        break
 
             if client_phase == RECV1:
                 print("Client phase:  RECV1")
