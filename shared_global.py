@@ -34,7 +34,7 @@ REJECTED = 102
 CLIENT_MESSAGE_SIZE = struct.calcsize('>ii')
 SERVER_MESSAGE0_SIZE = struct.calcsize(">i")
 SERVER_MESSAGE1_SIZE = struct.calcsize(">iiii")
-SERVER2_MESSAGE2_SIZE = struct.calcsize(">i")
+SERVER_MESSAGE2_SIZE = struct.calcsize(">i")
 
 # this function will make sure all bytes are sent
 # Returns 1 on success, 2 if connection closed, 0 for any other OSError.

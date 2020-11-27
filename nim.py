@@ -195,7 +195,6 @@ def nim_game_client(my_host, my_port):
             if client_phase == SEND:
                 if first_send_itter:
                     print("Client phase:  SEND")
-                    print("Your turn:")
                     first_send_itter = False
                 if soc in readable:
                     # server sent message when not suppose to
@@ -220,7 +219,8 @@ def nim_game_client(my_host, my_port):
                         continue
                     if res == 0:
                         #todo- handle error
-                        print("Error")
+                        print("SEND Error")
+                        break
 
             if client_phase == RECV2:
                 print("Client phase:  RECV2")
@@ -228,7 +228,7 @@ def nim_game_client(my_host, my_port):
                     # user input while not need to be
                     break
 
-                res = recv(soc, SERVER_MESSAGE1_SIZE)
+                res = recv(soc, SERVER_MESSAGE2_SIZE)
                 if res == 1:
                     # all was received
                     server_response = struct.unpack(">i", recv_msg)[0]
@@ -250,7 +250,7 @@ def nim_game_client(my_host, my_port):
 
                 else:  # res==0
                     # there was an error
-                    print("Error")
+                    break
 '''
             if sys.stdin in readable:
                 output = sys.stdin.readline()

@@ -70,6 +70,8 @@ def remove_playing_client(client):
         reading_dict[new_playing_client] = b''
         connection_msg = PLAYING
         writing_dict[new_playing_client] = struct.pack(">i", connection_msg)
+        print("%% new client in play list:")
+        print("Connection msg:", connection_msg)
 
 
 #  executes the given players move, saved in reading_dict[client]
@@ -95,6 +97,7 @@ def exec_client_move(client):
             # Illegal player move
             server_response = PLAYER_ILLEAGL_MOVE
     writing_dict[client] = struct.pack(">i", server_response)
+    print("server response to client move:", server_response)
     return 1
 
 
@@ -128,7 +131,7 @@ def handle_new_client(listen_soc):
     new_clients.append(conn_sock)
     writing_dict[conn_sock] = struct.pack(">i", connection_msg)
     print("***new client in dict:")
-    print(type(writing_dict[conn_sock]), writing_dict[conn_sock])
+    print("connection message:", connection_msg)
     return 1
 
 
@@ -179,7 +182,6 @@ def recv(client):
     return 1
 
 
-#  TODO - handle dict lookups when client already disconnected and not in them
 # this function is responsible for the server socket connection and the server game logic.
 # it starts a socket, with socket, bind and listen commands.
 # when a client tries to connect, it accepts a single connection and the game begins.
@@ -269,6 +271,9 @@ def nim_game_server(my_port):
                             remove_playing_client(writable_sock)
                         continue
 
+                    #  TODO - handle dict lookups when client already disconnected and not in them
+                    if writable_sock not in players_status:
+                        continue
                     player = players_status[writable_sock]
 
                     if player[-1] == SEND1:  # SEND1 means we are sending the client his game status.
