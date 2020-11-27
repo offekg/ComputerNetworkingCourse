@@ -51,11 +51,13 @@ def exec_server_move(client):
 
 
 def remove_playing_client(client):
-    play_list.remove(client)
+    if client in play_list:
+        play_list.remove(client)
     players_status.pop(client, None)
     reading_dict.pop(client, None)
     writing_dict.pop(client, None)
-    wait_list.remove(client)
+    if client in wait_list:
+        wait_list.remove(client)
 
     if len(wait_list) != 0:
         new_playing_client = wait_list.pop()
@@ -221,7 +223,7 @@ def nim_game_server(my_port):
                             continue
 
                     elif players_status[readable_sock][-1] == RECV:
-                        print("Server trying to receive form client")
+                        print("Server in phase RECV, trying to receive form client")
                         recv_stat = recv(readable_sock)
                         if recv_stat == 0:
                             print("Error with receiving from client")

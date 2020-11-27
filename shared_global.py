@@ -32,7 +32,7 @@ REJECTED = 102
 
 # messages sizes
 CLIENT_MESSAGE_SIZE = struct.calcsize('>ii')
-SERVER_MESSAGE0_SIZE = struct.calcsize(">iiii")
+SERVER_MESSAGE0_SIZE = struct.calcsize(">i")
 SERVER_MESSAGE1_SIZE = struct.calcsize(">iiii")
 SERVER2_MESSAGE2_SIZE = struct.calcsize(">i")
 
