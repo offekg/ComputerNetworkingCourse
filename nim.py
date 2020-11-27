@@ -56,7 +56,7 @@ def send(soc, msg):
     global sent_msg_size
     if len(msg) - sent_msg_size > 0:
         try:
-            sent = soc.send(msg[len(sent_msg_size):])
+            sent = soc.send(msg[sent_msg_size:])
         except OSError as err:
             if err == errno.EPIPE or err == errno.ECONNRESET:
                 print("Disconnected from server")
@@ -109,6 +109,7 @@ def nim_game_client(my_host, my_port):
     game_active = False
     output = None
     client_phase = RECV0
+    first_send_itter = True
 
     # creating a socket and connecting to the server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as soc:
@@ -174,6 +175,7 @@ def nim_game_client(my_host, my_port):
                     if game_status == PLAYERS_TURN:
                         print("Your turn:")
                         client_phase = SEND
+                        first_send_itter = True
                         continue
                     elif game_status == SERVER_WINS:
                         print("Server win!")
@@ -191,10 +193,14 @@ def nim_game_client(my_host, my_port):
                     print("Error")
 
             if client_phase == SEND:
-                print("Client phase:  SEND")
+                if first_send_itter:
+                    print("Client phase:  SEND")
+                    print("Your turn:")
+                    first_send_itter = False
                 if soc in readable:
                     # server sent message when not suppose to
                     # Todo - think about it
+                    print("Disconnected from server")
                     break
 
                 if sys.stdin in readable and soc in writable:

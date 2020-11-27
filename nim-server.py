@@ -157,27 +157,29 @@ def send(client):
 
 
 # Receives message from client into reading_dict[client]
-# return 0 on error, 1 on success
+# returns 0 on error, 1 if finished receiving all, 2 if received part of message
 def recv(client):
     # connected client is readable, we will read it
-    if len(reading_dict[client]) < CLIENT_MESSAGE_SIZE:
-        try:
-            msg = client.recv(CLIENT_MESSAGE_SIZE - len(reading_dict[client]))
-        except OSError as err:
-            if err == errno.ECONNREFUSED:
-                print("Disconnected from client")
-                return 0
-            else:
-                print(err.strerror)
-                return 0
-        if not msg:
+    try:
+        msg = client.recv(CLIENT_MESSAGE_SIZE - len(reading_dict[client]))
+    except OSError as err:
+        if err == errno.ECONNREFUSED:
             print("Disconnected from client")
             return 0
-        reading_dict[client] += msg
+        else:
+            print(err.strerror)
+            return 0
+    if not msg:
+        print("Disconnected from client")
+        return 0
+    reading_dict[client] += msg
+
+    if len(reading_dict[client]) < CLIENT_MESSAGE_SIZE:
+        return 2
     return 1
 
-#  TODO - handle dict lookups when client already disconnected and not in them
 
+#  TODO - handle dict lookups when client already disconnected and not in them
 # this function is responsible for the server socket connection and the server game logic.
 # it starts a socket, with socket, bind and listen commands.
 # when a client tries to connect, it accepts a single connection and the game begins.
@@ -224,7 +226,7 @@ def nim_game_server(my_port):
                             continue
 
                     elif players_status[readable_sock][-1] == RECV:
-                        print("Server in phase RECV, trying to receive form client")
+                        print("Server in phase RECV, trying to receive from client")
                         recv_stat = recv(readable_sock)
                         if recv_stat == 0:
                             print("Error with receiving from client")
@@ -274,6 +276,7 @@ def nim_game_server(my_port):
                         send_stat = send(writable_sock)
                         if send_stat == 1:
                             players_status[writable_sock][-1] = RECV
+                            print("Server Succeeded with SEND1")
                         elif send_stat == 0:  # error
                             print("Error with send1 to client")  # TODO - decide what to do with error in specific socket
                             remove_playing_client(writable_sock)
@@ -282,6 +285,7 @@ def nim_game_server(my_port):
                         print("Server in phase SEND2")
                         send_stat = send(writable_sock)
                         if send_stat == 1:
+                            print("Server Succeeded with SEND2")
                             if player[3] != PLAYER_WINS:
                                 exec_server_move(writable_sock)
                             writing_dict[writable_sock] = struct.pack(">iiii", player[0], player[1], player[2],
