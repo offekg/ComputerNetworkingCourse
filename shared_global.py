@@ -30,6 +30,11 @@ PLAYING = 100
 WAITING = 101
 REJECTED = 102
 
+# messages sizes
+CLIENT_MESSAGE_SIZE = struct.calcsize('>ii')
+SERVER_MESSAGE0_SIZE = struct.calcsize(">iiii")
+SERVER_MESSAGE1_SIZE = struct.calcsize(">iiii")
+SERVER2_MESSAGE2_SIZE = struct.calcsize(">i")
 
 # this function will make sure all bytes are sent
 # Returns 1 on success, 2 if connection closed, 0 for any other OSError.

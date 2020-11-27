@@ -13,15 +13,13 @@ writing_dict = {}
 num_players=0
 wait_list_size=0
 heap_nums=[]
+new_clients=[]
+new_client_status_dict={}
 
 # Server game stages:
 SEND1 = 50
 RECV = 51
 SEND2 = 52
-
-RECV_MESSEGE_SIZE = struct.calcsize('>ii')
-SEND1_MESSEGE_SIZE = struct.calcsize(">iiii")
-SEND2_MESSEGE_SIZE = struct.calcsize(">i")
 
 
 def is_legal_move(client, move):
@@ -37,7 +35,7 @@ def is_win(client):
     return True
 
 
-def server_move(client):
+def exec_server_move(client):
 # removes 1 from largest heap. if more then one - then from lowest index
     max_index = 0
     max_heap = 0
@@ -47,6 +45,9 @@ def server_move(client):
             max_heap = players_status[client][i]
             max_index = i
         players_status[client][max_index] -= 1
+
+    if is_win(client):
+        players_status[client][3]= SERVER_WINS
 
 
 def remove_playing_client(client):
@@ -58,17 +59,20 @@ def remove_playing_client(client):
     if len(wait_list)!=0:
         new_playing_client=wait_list.pop()
         play_list.append(new_playing_client)
-        players_status[new_playing_client]= [heap_nums[0], heap_nums[1], heap_nums[2],PLAYERS_TURN]  # [heapA, heapB, heapC, game_phase]
+        new_clients.append(new_playing_client)
+        players_status[new_playing_client] = [heap_nums[0], heap_nums[1],heap_nums[2], PLAYERS_TURN, SEND1]  # [heapA, heapB, heapC, Game status, game stage]
         reading_dict[new_playing_client] = b''
-        writing_dict[new_playing_client] = 0
-        connection_msg = PLAYING  # TODO - need to send to client somewere
+        connection_msg = PLAYING
+        writing_dict[new_playing_client]=struct.pack("<i", connection_msg)
 
 
 def exec_client_move(client):
     move = struct.unpack(">ii", reading_dict[client])
+    server_response=None
     if move[0] == QUIT:
         # Client ended the game.
         remove_playing_client(client)
+        return 0
 
     elif move[0] == ILLEGAL_HEAP_INPUT:
         # the move received from the player was illegal.
@@ -84,11 +88,7 @@ def exec_client_move(client):
             # Illegal player move
             server_response = PLAYER_ILLEAGL_MOVE
     writing_dict[client] = struct.pack(">i", server_response)
-
-
-def execute_server_move(client):
-    return
-
+    return 1
 
 def handle_new_client(listen_soc):
     try:
@@ -103,7 +103,6 @@ def handle_new_client(listen_soc):
         play_list.append(conn_sock)
         players_status[conn_sock] = [heap_nums[0], heap_nums[1],heap_nums[2], PLAYERS_TURN, SEND1]  # [heapA, heapB, heapC, Game status, game stage]
         reading_dict[conn_sock] = b''
-        writing_dict[conn_sock] = struct.pack(">iiii", heap_nums[0], heap_nums[1],heap_nums[2], PLAYERS_TURN)
         connection_msg = PLAYING
     elif len(wait_list) < wait_list_size:
         wait_list.append(conn_sock)
@@ -111,15 +110,16 @@ def handle_new_client(listen_soc):
     else:
         connection_msg = REJECTED
 
-    _, writeable, _ = select(rlist=[], wlist=[conn_sock], xlist=[], timeout=10)
     # TODO - send connection_msg to client
-
+    new_clients.append(conn_sock)
+    writing_dict[conn_sock]=struct.pack(">i" ,connection_msg)
 
 # sends message that is saved in writing_dict[client], to client
 # returns 1 if succeeded in sending complete messgae
 # returns 2 if sent part of message, returns 0 for errors
 def send(client):
     # connected client is readable, we will read it
+
     if len(writing_dict[client]) > 0:
         try:
             sent = client.send(writing_dict[client])
@@ -142,9 +142,9 @@ def send(client):
 # return 0 on error, 1 on success
 def recv(client):
     # connected client is readable, we will read it
-    if len(reading_dict[client]) < RECV_MESSEGE_SIZE:
+    if len(reading_dict[client]) < CLIENT_MESSAGE_SIZE:
         try:
-            msg = client.recv(RECV_MESSEGE_SIZE - len(reading_dict[client]))
+            msg = client.recv(CLIENT_MESSAGE_SIZE - len(reading_dict[client]))
         except OSError as err:
             if err == errno.ECONNREFUSED:
                 print("Disconnected from client")
@@ -183,10 +183,6 @@ def nim_game_server(my_port):
             listen_soc.close()
             return
 
-        conn_sock = None
-        output = None
-
-
         while True:
             readable, _, _ = select(rlist=[listen_soc], wlist=[], xlist=[], timeout=10)
             if listen_soc not in readable:
@@ -195,42 +191,62 @@ def nim_game_server(my_port):
 
             # there is a new client
             if handle_new_client(listen_soc)==0:
+                # there was an error during accept
+                continue
                 # todo- there was an error during accept. continue? end game?
 
             while len(play_list)!=0:
-                readable, writeable, _ = select(rlist=play_list+[listen_soc], wlist=play_list, xlist=[], timeout=10)
+                readable, writeable, _ = select(rlist=play_list+[listen_soc], wlist=play_list+new_clients, xlist=[], timeout=10)
                 for readable_sock in readable:
 
                     if readable_sock == listen_soc:
                         # there is a new client trying to connect
                         if handle_new_client(readable_sock)==0: #there was an error during accept
                             # todo - end game? continue with others?
-                        continue
+                            continue
 
-                    recv(readable_sock)
+                    else:
+                        recv(readable_sock)
 
                 # checks what client messegese have been fully received, and executes the move
                 for client, msg in reading_dict.items():
-                    if len(msg) == RECV_MESSEGE_SIZE:
+                    if len(msg) == CLIENT_MESSAGE_SIZE:
                         #the client finished sending his msg
-                        exec_client_move(client)
-                        players_status[client][-1] = SEND2
+                        if exec_client_move(client)==0:
+                            #client ended the game and was removed
+                            continue
                         reading_dict[client] = b''
+                        players_status[client][-1] = SEND2
 
                 for writable_sock in writeable:
-                    if players_status[writable_sock][-1] == SEND1:
+                    if writable_sock in new_clients:
+                        #we need to send him if he is now on playing list, wait list or rejected
+                        send_stat=send(writable_sock)
+                        if send_stat== 1:
+                            #all was sent
+                            new_clients.pop(writable_sock)
+                            if writable_sock in play_list:
+                                writing_dict[writable_sock] = struct.pack(">iiii", heap_nums[0], heap_nums[1],heap_nums[2], PLAYERS_TURN)
+                            else:
+                                writing_dict.pop(writable_sock)
+                        elif send_stat == 0:
+                            print("Error")
+                        continue
+
+                    if players_status[writable_sock][-1] == SEND1: #SEND1 means we are sending the client his game status.
                         send_stat = send(writable_sock)
                         if send_stat == 1:
                             players_status[writable_sock][-1] = RECV
-                        if send_stat == 0: # error
+                        elif send_stat == 0: # error
                             print("Error")  # TODO - decide what to do with error in specific socket
-                    if players_status[writable_sock][-1] == SEND2:
+                    if players_status[writable_sock][-1] == SEND2: #SEND2 means we are sending the client if his move was iilegal or accepted
                         send_stat = send(writable_sock)
                         if send_stat == 1:
-                            players_status[writable_sock][-1] = SEND1
-                            server_move(writable_sock)
                             writing_dict[writable_sock] = struct.pack(">iiii", players_status[client][0], players_status[client][1], players_status[client][2], players_status[client][3])
-                        if send_stat == 0: # error
+                            if players_status[client][3]!= PLAYER_WINS:
+                                exec_server_move(writable_sock)
+                            players_status[writable_sock][-1] = SEND1
+                        elif send_stat == 0: # error
                             print("Error")  # TODO - decide what to do with error
 
 
