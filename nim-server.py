@@ -58,6 +58,8 @@ def remove_playing_client(client):
     writing_dict.pop(client, None)
     if client in wait_list:
         wait_list.remove(client)
+    if client in new_clients:
+        new_clients.remove(client)
 
     if len(wait_list) != 0:
         new_playing_client = wait_list.pop()
@@ -229,7 +231,7 @@ def nim_game_server(my_port):
                             # todo - end game? continue with others?
                             continue
 
-                    elif players_status[readable_sock][-1] == RECV:
+                    elif readable_sock in play_list and players_status[readable_sock][-1] == RECV:
                         print("Server in phase RECV, trying to receive from client")
                         recv_stat = recv(readable_sock)
                         if recv_stat == 0:
