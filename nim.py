@@ -120,16 +120,19 @@ def nim_game_client(my_host, my_port):
             soc.close()
             return
 
+        first_rec0_itter = True
         while(True):
             # establish connection with server
             readable, writable, _ = select([soc, sys.stdin], [soc], [], 10)
 
             if client_phase == RECV0:
-                print("Client phase:  RECV0")
+                if first_rec0_itter:
+                    print("Client phase:  RECV0")
+                    first_rec0_itter = False
                 # client is waiting to see if his connection was accepted or rejected
                 if sys.stdin in readable:
                     # user input while not need to be
-                    # TODO - think about what to do
+                    # TODO - think about what to do, maybe send Q to server
                     break
                 if soc in readable:
                     res = recv(soc, SERVER_MESSAGE0_SIZE)
