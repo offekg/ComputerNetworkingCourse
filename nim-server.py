@@ -51,6 +51,7 @@ def exec_server_move(client):
 
 
 def remove_playing_client(client):
+    waiting_client = False
     if client in play_list:
         play_list.remove(client)
     players_status.pop(client, None)
@@ -58,10 +59,11 @@ def remove_playing_client(client):
     writing_dict.pop(client, None)
     if client in wait_list:
         wait_list.remove(client)
+        waiting_client = True
     if client in new_clients:
         new_clients.remove(client)
 
-    if len(wait_list) != 0:
+    if len(wait_list) != 0 and not waiting_client:
         new_playing_client = wait_list.pop()
         play_list.append(new_playing_client)
         new_clients.append(new_playing_client)
@@ -115,16 +117,16 @@ def handle_new_client(listen_soc):
 
     connection_msg = None
     if len(play_list) < num_players:
-        print("Adding new client to play_list. {} Places left.".format(num_players - len(play_list)))
         play_list.append(conn_sock)
+        print("Added new client to play_list. {} Places left.".format(num_players - len(play_list)))
         players_status[conn_sock] = \
             [heap_nums[0], heap_nums[1], heap_nums[2], PLAYERS_TURN,
              SEND1]  # [heapA, heapB, heapC, Game status, game stage]
         reading_dict[conn_sock] = b''
         connection_msg = PLAYING
     elif len(wait_list) < wait_list_size:
-        print("Adding new client to wait_list. {} Places left.".format(wait_list_size - len(wait_list)))
         wait_list.append(conn_sock)
+        print("Added new client to wait_list. {} Places left.".format(wait_list_size - len(wait_list)))
         connection_msg = WAITING
     else:
         print("No more slots left for new client. Rejected.")
