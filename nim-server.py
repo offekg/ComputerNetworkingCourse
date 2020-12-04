@@ -78,6 +78,13 @@ def remove_playing_client(client):
         print("Connection msg:", connection_msg)
 
 
+def remove_waiting_client(client):
+    writing_dict.pop(client, None)
+    wait_list.remove(client)
+    if client in new_clients:
+        new_clients.remove(client)
+
+
 #  executes the given players move, saved in reading_dict[client]
 # returns 0 if player asked to quit, 1 otherwise
 def exec_client_move(client):
@@ -223,8 +230,12 @@ def nim_game_server(my_port):
                 # todo- there was an error during accept. continue? end game?
 
             while len(play_list) != 0:
-                readable, writeable, _ = select(play_list + [listen_soc], play_list + new_clients, [], 10)
+                readable, writeable, _ = select(play_list + wait_list + [listen_soc], play_list + new_clients, [], 10)
                 for readable_sock in readable:
+
+                    if readable_sock in wait_list:
+                        print("Client from Waiting list disconnected")
+                        remove_waiting_client(readable_sock)
 
                     if readable_sock == listen_soc:
                         # there is a new client trying to connect
@@ -253,18 +264,6 @@ def nim_game_server(my_port):
                         # TODO - handle socket that sent not when supposed to - probably closed
                         print("Client sent unexpected message. Removing from list.")
                         remove_playing_client(readable_sock)
-
-                # # checks what client messages have been fully received, and executes the move
-                # for client, msg in reading_dict.items():
-                #     if len(msg) == CLIENT_MESSAGE_SIZE:
-                #         print("Client message received succesfully: ", msg)
-                #         # the client finished sending his msg
-                #         if exec_client_move(client) == 0:
-                #             # client ended the game and to be removed
-                #             remove_playing_client(client)
-                #             continue
-                #         reading_dict[client] = b''
-                #         players_status[client][-1] = SEND2
 
                 for writable_sock in writeable:
                     if writable_sock in new_clients:
