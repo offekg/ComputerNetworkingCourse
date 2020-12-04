@@ -237,7 +237,7 @@ def nim_game_server(my_port):
                         print("Client from Waiting list disconnected")
                         remove_waiting_client(readable_sock)
 
-                    if readable_sock == listen_soc:
+                    elif readable_sock == listen_soc:
                         # there is a new client trying to connect
                         print("Server trying to accept new client")
                         if handle_new_client(readable_sock) == 0:  # there was an error during accept
