@@ -70,7 +70,7 @@ def remove_playing_client(client):
         new_clients.remove(client)
 
     if len(wait_list) != 0 and not waiting_client:
-        new_playing_client = wait_list.pop()
+        new_playing_client = wait_list.pop(0)
         play_list.append(new_playing_client)
         new_clients.append(new_playing_client)
         players_status[new_playing_client] = \
