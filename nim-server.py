@@ -22,12 +22,14 @@ RECV = 51
 SEND2 = 52
 
 
+# Checks if given move is legal, against given clients heaps.
 def is_legal_move(client, move):
     if move[1] <= 0 or players_status[client][move[0]] - move[1] < 0:
         return False
     return True
 
 
+# Checks if the given client's heaps are all 0, hence someone won.
 def is_win(client):
     for i in range(0, 3):
         if players_status[client][i] != 0:
@@ -35,8 +37,9 @@ def is_win(client):
     return True
 
 
+# Executes a server move against given client.
+# Removes 1 from largest heap. if more then one - then from lowest index
 def exec_server_move(client):
-    # removes 1 from largest heap. if more then one - then from lowest index
     max_index = 0
     max_heap = 0
 
@@ -50,6 +53,9 @@ def exec_server_move(client):
         players_status[client][3] = SERVER_WINS
 
 
+#  Removes the given client from all lists and dictionaries he is in.
+#  If he is not from the waiting list, and that list is not empty, then the next
+#  client from the waiting list starts playing.
 def remove_playing_client(client):
     waiting_client = False
     if client in play_list:
@@ -77,6 +83,7 @@ def remove_playing_client(client):
         print("Connection msg:", connection_msg)
 
 
+#  Removes the given waiting client from all lists and dictionaries he is in.
 def remove_waiting_client(client):
     writing_dict.pop(client, None)
     wait_list.remove(client)
@@ -85,7 +92,7 @@ def remove_waiting_client(client):
 
 
 #  executes the given players move, saved in reading_dict[client]
-# returns 0 if player asked to quit, 1 otherwise
+#  returns 0 if player asked to quit, 1 otherwise
 def exec_client_move(client):
     move = struct.unpack(">ii", reading_dict[client])
     print("Client move accepted is:", move)
@@ -112,6 +119,9 @@ def exec_client_move(client):
     return 1
 
 
+# Gets the listening socket and tries to accept a new client.
+# If succeeds, prepares the relevant connection_msg according to available room,
+# and enters the new client to the relevant list (playing or waiting) if there is room.
 # returns 0 on failure to accept new client, 1 on success
 def handle_new_client(listen_soc):
     try:
@@ -146,8 +156,8 @@ def handle_new_client(listen_soc):
     return 1
 
 
-# sends message that is saved in writing_dict[client], to client
-# returns 1 if succeeded in sending complete messgae
+# Sends message that is saved in writing_dict[client], to client
+# returns 1 if succeeded in sending complete message
 # returns 2 if sent part of message, returns 0 for errors
 def send(client):
     # connected client is readable, we will read it
@@ -193,11 +203,11 @@ def recv(client):
     return 1
 
 
-# this function is responsible for the server socket connection and the server game logic.
-# it starts a socket, with socket, bind and listen commands.
-# when a client tries to connect, it accepts a single connection and the game begins.
-# when the connection is closed, returns to listening until a new client connect.
-# in case of an error, the server closes the connection and the function returns.
+# This function is responsible for the server socket connection and the server game logic.
+# It starts a socket, with socket, bind and listen commands.
+# It constantly listens to new client connections, and plays the game against all playing clients.
+# When a connection is closed, continues with the other clients.
+# In case of an error, the server closes the connection and the function returns.
 def nim_game_server(my_port):
     # creating a socket with socket, bind and listen commands.
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listen_soc:
@@ -310,9 +320,9 @@ def nim_game_server(my_port):
                             remove_playing_client(writable_sock)
 
 
-# this function starts the server
-# gets the arguments for the server program and sends them to the nim_game_server function.
-# wraps the nim_game_server function in case of an error.
+# This function starts the server
+# Gets the arguments for the server program and saves them in the global variables.
+# Wraps the nim_game_server function in case of an error.
 def start_server():
     global num_players, wait_list_size, heap_nums
     if len(sys.argv) == 7:

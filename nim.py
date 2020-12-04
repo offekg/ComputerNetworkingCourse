@@ -17,14 +17,14 @@ recv_msg = b''
 sent_msg_size = 0
 
 
-# this function print's the heaps status in the format
+# This function print's the heaps status in the format
 def print_heaps(n_a, n_b, n_c):
     print("Heap A: {}".format(n_a))
     print("Heap B: {}".format(n_b))
     print("Heap C: {}".format(n_c))
 
 
-# this function checks the user input "play" is in the correct format,
+# This function checks the user input "play" is in the correct format,
 # and creates the data to be sent to the server accordingly
 def create_turn_to_send(play):
     if len(play) == 2 and play[1].isdigit():
@@ -48,7 +48,7 @@ def create_turn_to_send(play):
     return heap_enum, num_to_send
 
 
-# sends message that is saved in writing_dict[client], to client
+# Sends message that is saved in writing_dict[client], to client
 # returns 1 if succeeded in sending complete message
 # returns 2 if sent part of message, returns 0 for errors
 def send(soc, msg):
@@ -74,7 +74,9 @@ def send(soc, msg):
 
 
 # Receives message from server into recv_msg
-# return 0 on error, 1 on success
+# returns 1 if succeeded in receiving complete message
+# returns 2 if received part of message
+# returns 0 for errors
 def recv(soc, msg_size):
     # connected client is readable, we will read it
     global recv_msg
@@ -99,9 +101,13 @@ def recv(soc, msg_size):
         return 1  # recv all
 
 
-# this function is responsible for the client socket connection and the client work.
+# This function is responsible for the client socket connection and the client work.
 # it starts a socket connection to the server.
-# it print's the heaps status and game status it gets from the server.
+# when connection accepted, prints connection status message from server.
+# If the server accepted into playing list, then the game begins.
+# If server accepted int waiting list, the client waits for new message.
+# If rejected by server, functions returns.
+# While playing game, it print's the heaps status and game status it gets from the server.
 # it gets the player's input, checks its in the right format and sends it to the server.
 # in case of an error, the connection is closed and the function returns.
 def nim_game_client(my_host, my_port):
@@ -253,9 +259,9 @@ def nim_game_client(my_host, my_port):
                     break
 
 
-# this function starts client
-# gets the arguments for the client's program and send them to the nim_game_client function.
-# wraps the nim_game_server function in case of an error.
+# This function starts client
+# Gets the arguments for the client's program and sends them to the nim_game_client function.
+# Wraps the nim_game_server function in case of an error.
 def start_client():
     if len(sys.argv) == 3:
         host = sys.argv[1]
