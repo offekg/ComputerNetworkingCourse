@@ -68,9 +68,8 @@ def remove_playing_client(client):
         play_list.append(new_playing_client)
         new_clients.append(new_playing_client)
         players_status[new_playing_client] = \
-            [heap_nums[0], heap_nums[1], heap_nums[2], PLAYERS_TURN,
-             SEND1]  # [heapA, heapB, heapC, Game status, game stage]
-        #  TODO - need to send this client "now playing" message (add to new_client list?)
+            [heap_nums[0], heap_nums[1], heap_nums[2], PLAYERS_TURN, SEND1]
+            # [heapA, heapB, heapC, Game status, game stage]
         reading_dict[new_playing_client] = b''
         connection_msg = PLAYING
         writing_dict[new_playing_client] = struct.pack(">i", connection_msg)
@@ -127,8 +126,8 @@ def handle_new_client(listen_soc):
         play_list.append(conn_sock)
         print("Added new client to play_list. {} Places left.".format(num_players - len(play_list)))
         players_status[conn_sock] = \
-            [heap_nums[0], heap_nums[1], heap_nums[2], PLAYERS_TURN,
-             SEND1]  # [heapA, heapB, heapC, Game status, game stage]
+            [heap_nums[0], heap_nums[1], heap_nums[2], PLAYERS_TURN, SEND1]
+            # [heapA, heapB, heapC, Game status, game stage]
         reading_dict[conn_sock] = b''
         connection_msg = PLAYING
     elif len(wait_list) < wait_list_size:
@@ -194,7 +193,6 @@ def recv(client):
     return 1
 
 
-#  ToDo - recognise if client in wait_list has disconnencted, and remove from wait list
 # this function is responsible for the server socket connection and the server game logic.
 # it starts a socket, with socket, bind and listen commands.
 # when a client tries to connect, it accepts a single connection and the game begins.
@@ -225,9 +223,8 @@ def nim_game_server(my_port):
 
             # there is a new client
             if handle_new_client(listen_soc) == 0:
-                # there was an error during accept
+                # there was an error during accept, continue to listen
                 continue
-                # todo- there was an error during accept. continue? end game?
 
             while len(play_list) != 0:
                 readable, writeable, _ = select(play_list + wait_list + [listen_soc], play_list + new_clients, [], 10)
@@ -240,8 +237,8 @@ def nim_game_server(my_port):
                     elif readable_sock == listen_soc:
                         # there is a new client trying to connect
                         print("Server trying to accept new client")
-                        if handle_new_client(readable_sock) == 0:  # there was an error during accept
-                            # todo - end game? continue with others?
+                        if handle_new_client(readable_sock) == 0:
+                            # there was an error during accept, continue to listen
                             continue
 
                     elif readable_sock in play_list and players_status[readable_sock][-1] == RECV:
@@ -261,8 +258,7 @@ def nim_game_server(my_port):
                             players_status[readable_sock][-1] = SEND2
 
                     else:
-                        # TODO - handle socket that sent not when supposed to - probably closed
-                        print("Client sent unexpected message. Removing from list.")
+                        print("Client sent unexpected message, removing him.")
                         remove_playing_client(readable_sock)
 
                 for writable_sock in writeable:
@@ -285,7 +281,6 @@ def nim_game_server(my_port):
                             remove_playing_client(writable_sock)
                         continue
 
-                    #  TODO - handle dict lookups when client already disconnected and not in them
                     if writable_sock not in players_status:
                         continue
                     player = players_status[writable_sock]
@@ -297,7 +292,7 @@ def nim_game_server(my_port):
                             players_status[writable_sock][-1] = RECV
                             print("Server Succeeded with SEND1")
                         elif send_stat == 0:  # error
-                            print("Error with send1 to client")  # TODO - decide what to do with error in specific socket
+                            print("Error with send1 to client")
                             remove_playing_client(writable_sock)
 
                     if player[-1] == SEND2:  # SEND2 means we are sending the client if his move was iilegal or accepted
@@ -311,80 +306,8 @@ def nim_game_server(my_port):
                                                                       player[3])
                             players_status[writable_sock][-1] = SEND1
                         elif send_stat == 0:  # error
-                            print("Error with send2 to client")  # TODO - decide what to do with error
+                            print("Error with send2 to client")
                             remove_playing_client(writable_sock)
-
-
-"""
-def old_way():
-                    # created a connection with a client. the games starts with full heaps.
-                    # for each new connection we will restart the heaps sizes
-                    #the game starts with the player's turn
-                    status = PLAYERS_TURN
-
-                    while True:
-                        # While client is still playing / connection is alive
-                        # 1) Send to the client the current heap values and game status
-                        data = struct.pack(">iiii", heaps[0], heaps[1], heaps[2], status)
-                        send_status = send_all(conn_sock)
-                        if send_status == 0:
-                            # there was an error while sending the data to the client. the game ends with this client.
-                            break
-                        elif send_status == 2:
-                            # there was a connection error from client, we print a specific message and end the game.
-                            print("Disconnected from client")
-                            break
-
-                        if status != PLAYERS_TURN:
-                            # the game is over - close connection with the current client.
-                            break
-
-                        # 2) accept players move and return response
-                        move = recv_all(conn_sock, ">ii")
-                        if move == 2:
-                            # there was a connection error from client, we print a specific message and end the game.
-                            print("Disconnected from client")
-                            break
-                        elif move == 0:
-                            # there was an error while receiving the data from the client. the game ends with this client.
-                            break
-
-                        move = struct.unpack(">ii", move)
-
-                        if move[0] == QUIT:
-                            # Client ended the game.
-                            break
-                        elif move[0] == ILLEGAL_HEAP_INPUT:
-                            # the move received from the player was illegal.
-                            server_response = PLAYER_ILLEAGL_MOVE
-                        else:
-                            if is_legal_move(move):
-                                # the player's move is legal so we update the heaps accordingly.
-                                heaps[move[0]] -= move[1]
-                                server_response = PLAYER_MOVE_ACCEPTED
-                                if is_win():
-                                    status = PLAYER_WINS
-                            else:
-                                # Illegal player move
-                                server_response = PLAYER_ILLEAGL_MOVE
-
-                        # send the client if the player's move was accepted or not.
-                        data = struct.pack(">i", server_response)
-                        send_status = send_all(conn_sock, data)
-                        if send_status == 0:
-                            # there was an error while sending the data to the client. the game ends with this client
-                            break
-                        elif send_status == 2:
-                            # there was a connection error from client, we print a specific message and end the game.
-                            print("Disconnected from client")
-                            break
-
-                    #   3) play the server's move if the player didn't win yet.
-                        if status != PLAYER_WINS:
-                            server_move()
-                            if is_win():
-                                status = SERVER_WINS
-                                """
 
 
 # this function starts the server

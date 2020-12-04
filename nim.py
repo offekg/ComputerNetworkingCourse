@@ -85,7 +85,7 @@ def recv(soc, msg_size):
             print("Disconnected from server")
             return 0
         else:
-            print(err.strerror)
+            print("Error:", err.strerror)
             return 0
     if not msg:
         print("Disconnected from server")
@@ -132,7 +132,6 @@ def nim_game_client(my_host, my_port):
                 # client is waiting to see if his connection was accepted or rejected
                 if sys.stdin in readable:
                     # user input while not need to be
-                    # TODO - think about what to do, maybe send Q to server
                     break
                 if soc in readable:
                     res = recv(soc, SERVER_MESSAGE0_SIZE)
@@ -161,7 +160,6 @@ def nim_game_client(my_host, my_port):
 
                     else: #res==0
                         #there was an error
-                        print("Error")
                         break
 
             if client_phase == RECV1:
@@ -194,15 +192,14 @@ def nim_game_client(my_host, my_port):
 
                 else:  # res==0
                     # there was an error
-                    print("Error")
+                    break
 
             if client_phase == SEND:
                 if first_send_itter:
                     print("Client phase:  SEND")
                     first_send_itter = False
                 if soc in readable:
-                    # server sent message when not suppose to
-                    # Todo - think about it
+                    # server sent message when not suppose to, means it disconnected
                     print("Disconnected from server")
                     break
 
@@ -222,7 +219,6 @@ def nim_game_client(my_host, my_port):
                         # not all was sent, need to continue sending
                         continue
                     if res == 0:
-                        #todo- handle error
                         print("SEND Error")
                         break
 
@@ -255,95 +251,6 @@ def nim_game_client(my_host, my_port):
                 else:  # res==0
                     # there was an error
                     break
-'''
-            if sys.stdin in readable:
-                output = sys.stdin.readline()
-                if output == "Q":
-                    break
-            if soc in readable:
-                output = recv_all(soc, ">i")
-                connection_Status = struct.unpack(">i", output)
-                if connection_Status == REJECTED:
-                    print("You are rejected by the server.")
-                    break
-
-                if connection_Status == PLAYING:
-                    print("Now you are playing against the server!")
-                    game_active = True
-                    break
-
-                if connection_Status == WAITING:
-                    print("Waiting to play against the server.")
-
-        while game_active:
-            readable, writable, _ = select(rlist=[soc, sys.stdin], wlist=[soc], xlist=[], timeout=10)
-            # TODO - check disconnect from soc
-
-            if sys.stdin in readable:
-                if soc in writable and game_phase == 2:
-                    user_input = sys.stdin.readline()
-                    game_phase_2(soc, user_input)
-                if game_phase != 2:
-                    user_input = sys.stdin.readline()
-                    if output == "Q":  # TODO - send to server
-                        break
-
-            if soc in readable and game_phase == 1:
-                game_status = game_phase_1(soc)
-                if game_status != PLAYERS_TURN:
-                   break
-                game_phase = 2
-                continue
-
-
-
-            if game_status == PLAYERS_TURN:
-                # 2) it is the player's turn, the client gets the player's input and send it to server
-                print("Your turn:")
-                play = input()
-                play = play.split()
-                heap_enum, num_to_send = create_turn_to_send(play)
-                data = struct.pack(">ii", heap_enum, num_to_send)
-
-                result = send_all(soc, data)
-                if result == 2:
-                    # there was a connection error from server, we print a specific message and end the game.
-                    print("Disconnected from server")
-                elif result == 0:
-                    # there was an error while sending the data to the server. the game ends.
-                    break
-
-                if heap_enum == QUIT:
-                    game_active = False
-                    continue
-
-            else:
-                if game_status == SERVER_WINS:
-                    print("Server win!")
-                if game_status == PLAYER_WINS:
-                    print("You win!")
-                game_active = False
-                continue
-
-            #   4) Server response to move
-            output = recv_all(soc, ">i")
-            if output == 2:
-                # there was a connection error from server, we print a specific message and end the game.
-                print("Disconnected from server")
-                break
-            if output == 0:
-                # there was an error while receiving the data from the server. the game ends with this client.
-                break
-
-            server_response = struct.unpack(">i", output)[0]
-            if server_response == PLAYER_ILLEAGL_MOVE:
-                print("Illegal move")
-            elif server_response == PLAYER_MOVE_ACCEPTED:
-                print("Move accepted")
-            else:
-                print("got some error from server response: ", server_response)
-                break
-'''
 
 
 # this function starts client
