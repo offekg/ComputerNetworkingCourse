@@ -79,8 +79,6 @@ def remove_playing_client(client):
         reading_dict[new_playing_client] = b''
         connection_msg = PLAYING
         writing_dict[new_playing_client] = struct.pack(">i", connection_msg)
-        print("%% new client in play list:")
-        print("Connection msg:", connection_msg)
 
 
 #  Removes the given waiting client from all lists and dictionaries he is in.
@@ -95,7 +93,6 @@ def remove_waiting_client(client):
 #  returns 0 if player asked to quit, 1 otherwise
 def exec_client_move(client):
     move = struct.unpack(">ii", reading_dict[client])
-    print("Client move accepted is:", move)
     server_response = None
     if move[0] == QUIT:
         # Client ended the game.
@@ -115,7 +112,6 @@ def exec_client_move(client):
             # Illegal player move
             server_response = PLAYER_ILLEAGL_MOVE
     writing_dict[client] = struct.pack(">i", server_response)
-    print("server response to client move:", server_response)
     return 1
 
 
@@ -134,7 +130,6 @@ def handle_new_client(listen_soc):
     connection_msg = None
     if len(play_list) < num_players:
         play_list.append(conn_sock)
-        print("Added new client to play_list. {} Places left.".format(num_players - len(play_list)))
         players_status[conn_sock] = \
             [heap_nums[0], heap_nums[1], heap_nums[2], PLAYERS_TURN, SEND1]
             # [heapA, heapB, heapC, Game status, game stage]
@@ -142,17 +137,13 @@ def handle_new_client(listen_soc):
         connection_msg = PLAYING
     elif len(wait_list) < wait_list_size:
         wait_list.append(conn_sock)
-        print("Added new client to wait_list. {} Places left.".format(wait_list_size - len(wait_list)))
         connection_msg = WAITING
     else:
-        print("No more slots left for new client. Rejected.")
         connection_msg = REJECTED
 
     #  Add client to list of new clients that need to get message
     new_clients.append(conn_sock)
     writing_dict[conn_sock] = struct.pack(">i", connection_msg)
-    print("***new client in dict:")
-    print("connection message:", connection_msg)
     return 1
 
 
@@ -161,7 +152,6 @@ def handle_new_client(listen_soc):
 # returns 2 if sent part of message, returns 0 for errors
 def send(client):
     # connected client is readable, we will read it
-    print("trying to send: ", writing_dict[client])
     if len(writing_dict[client]) > 0:
         try:
             sent = client.send(writing_dict[client])
@@ -246,19 +236,15 @@ def nim_game_server(my_port):
 
                     elif readable_sock == listen_soc:
                         # there is a new client trying to connect
-                        print("Server trying to accept new client")
                         if handle_new_client(readable_sock) == 0:
                             # there was an error during accept, continue to listen
                             continue
 
                     elif readable_sock in play_list and players_status[readable_sock][-1] == RECV:
-                        print("Server in phase RECV, trying to receive from client")
                         recv_stat = recv(readable_sock)
                         if recv_stat == 0:
-                            print("Error with receiving from client")
                             remove_playing_client(readable_sock)
                         if recv_stat == 1:
-                            print("Client message received successfully: ", reading_dict[readable_sock])
                             # the client finished sending his msg
                             if exec_client_move(readable_sock) == 0:
                                 # client ended the game and to be removed
@@ -274,11 +260,9 @@ def nim_game_server(my_port):
                 for writable_sock in writeable:
                     if writable_sock in new_clients:
                         # we need to send him if he is now on playing list, wait list or rejected
-                        print("Server trying to send init message to new client")
                         send_stat = send(writable_sock)  # Return 1 if completed, 2 if not completed, 0 on error
                         if send_stat == 1:
                             # all was sent
-                            print("Server succeeded sending init message to new client")
                             new_clients.remove(writable_sock)
                             if writable_sock in play_list:
                                 writing_dict[writable_sock] = struct.pack(">iiii", heap_nums[0], heap_nums[1],
@@ -286,7 +270,6 @@ def nim_game_server(my_port):
                             else:  # socket not in playing list
                                 writing_dict.pop(writable_sock)
                         elif send_stat == 0:
-                            print("Error in sending client init message")
                             new_clients.remove(writable_sock)
                             remove_playing_client(writable_sock)
                         continue
@@ -296,27 +279,21 @@ def nim_game_server(my_port):
                     player = players_status[writable_sock]
 
                     if player[-1] == SEND1:  # SEND1 means we are sending the client his game status.
-                        print("Server in phase SEND1")
                         send_stat = send(writable_sock)
                         if send_stat == 1:
                             players_status[writable_sock][-1] = RECV
-                            print("Server Succeeded with SEND1")
                         elif send_stat == 0:  # error
-                            print("Error with send1 to client")
                             remove_playing_client(writable_sock)
 
                     if player[-1] == SEND2:  # SEND2 means we are sending the client if his move was iilegal or accepted
-                        print("Server in phase SEND2")
                         send_stat = send(writable_sock)
                         if send_stat == 1:
-                            print("Server Succeeded with SEND2")
                             if player[3] != PLAYER_WINS:
                                 exec_server_move(writable_sock)
                             writing_dict[writable_sock] = struct.pack(">iiii", player[0], player[1], player[2],
                                                                       player[3])
                             players_status[writable_sock][-1] = SEND1
                         elif send_stat == 0:  # error
-                            print("Error with send2 to client")
                             remove_playing_client(writable_sock)
 
 

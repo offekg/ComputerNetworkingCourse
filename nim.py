@@ -62,7 +62,7 @@ def send(soc, msg):
                 print("Disconnected from server")
                 return 0
             else:
-                print("Error:", err.strerror)
+                print("Send Error:", err.strerror)
                 return 0
         if sent != 0 and sent < len(msg) - sent_msg_size:
             sent_msg_size += sent
@@ -133,7 +133,6 @@ def nim_game_client(my_host, my_port):
 
             if client_phase == RECV0:
                 if first_rec0_itter:
-                    print("Client phase:  RECV0")
                     first_rec0_itter = False
                 # client is waiting to see if his connection was accepted or rejected
                 if sys.stdin in readable:
@@ -143,7 +142,6 @@ def nim_game_client(my_host, my_port):
                     res = recv(soc, SERVER_MESSAGE0_SIZE)
                     if res == 1:
                         # all wall received
-                        print("recv_msg is:", recv_msg)
                         connection_status = struct.unpack(">i", recv_msg)[0]
 
                         if connection_status == REJECTED:
@@ -164,12 +162,11 @@ def nim_game_client(my_host, my_port):
                         # not all was recieved, need to continue reading
                         continue
 
-                    else: #res==0
-                        #there was an error
+                    else: # res==0
+                        # there was an error
                         break
 
             if client_phase == RECV1:
-                print("Client phase:  RECV1")
                 # client will recv the game and heaps status and print it to the user
                 if sys.stdin in readable:
                     # user input while not need to be
@@ -202,7 +199,6 @@ def nim_game_client(my_host, my_port):
 
             if client_phase == SEND:
                 if first_send_itter:
-                    print("Client phase:  SEND")
                     first_send_itter = False
                 if soc in readable:
                     # server sent message when not suppose to, means it disconnected
@@ -216,7 +212,7 @@ def nim_game_client(my_host, my_port):
                     msg = struct.pack(">ii", heap_enum, num_to_send)
                     res = send(soc, msg)
                     if res == 1:
-                        #all was sent
+                        # all was sent
                         client_phase = RECV2
                         if heap_enum == QUIT:
                             break
@@ -225,11 +221,9 @@ def nim_game_client(my_host, my_port):
                         # not all was sent, need to continue sending
                         continue
                     if res == 0:
-                        print("SEND Error")
                         break
 
             if client_phase == RECV2:
-                print("Client phase:  RECV2")
                 if sys.stdin in readable:
                     # user input while not need to be
                     break
